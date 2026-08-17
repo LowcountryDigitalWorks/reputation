@@ -1,10 +1,15 @@
 # MVP and Roadmap
 
-Only Release 0.1 is currently authorized. Later phases require separate authorization.
+The accepted product baseline is Release 0.1. No functional Reputation implementation is currently authorized.
 
 ## 0.1 — Product & Architecture Foundation
 
-Status: **authorized architecture release**.
+Status: **ACCEPTED / STABLE**.
+
+Accepted baseline:
+
+- commit: `65a6c6ce5feac4aa243f0021d26aa5f40694b386`
+- tree: `30d73fba4ad69d9a3952b9d1e47b70e94bd55fcf`
 
 Deliverables:
 
@@ -26,11 +31,24 @@ Deliverables:
 - backup/recovery/export model;
 - cost/scaling triggers.
 
-No production application or infrastructure is part of 0.1.
+Release 0.1 is architecture/documentation only. No functional Reputation runtime or production infrastructure exists.
 
-## Later — Mode A core
+## Current service-first disposition
 
-Separately authorize before implementation:
+For an actual client review-request need, LDW should currently:
+
+1. inspect the client's existing CRM, scheduling, POS, review, and email capabilities;
+2. configure or integrate the least-cost adequate native capability;
+3. use official customer-controlled review destinations;
+4. add Reputation product code only when a demonstrated recurring gap remains.
+
+Activepieces or another workflow engine is not required.
+
+## Mode A core — C — DEFER MODE A
+
+Mode A is **not authorized for implementation**. It is deferred pending demonstrated customer need; this is a deferral, not a cancellation.
+
+The accepted conceptual capability remains:
 
 - tenants and locations;
 - administrator-configured review destinations;
@@ -42,9 +60,19 @@ Separately authorize before implementation:
 
 Mode A does not need recipient records.
 
+Reconsider Mode A only when demonstrated demand creates a recurring gap such as:
+
+- multi-location authoritative review-destination management;
+- portable branded review URLs or QR codes;
+- required aggregate click evidence unavailable from native tooling;
+- customers without equivalent native review-request automation;
+- another recurring cross-platform gap where a narrow Reputation core creates material customer value.
+
+Any future implementation requires separate authorization.
+
 ## Later — Mode B managed email
 
-Separately authorize before implementation:
+Not authorized. If later justified by demonstrated need, separately review and authorize before implementing:
 
 - event API and idempotency;
 - authoritative scheduled state;
@@ -61,7 +89,7 @@ Before production managed delivery, perform the applicable channel, consent, jur
 
 ## Later — automation integrations
 
-Activepieces, Zoho Flow, CRM automation, GitHub/serverless automation, or client applications may become callers. None becomes tenant authority, suppression truth, destination truth, audit truth, or required runtime infrastructure.
+Not authorized. Activepieces, Zoho Flow, CRM automation, GitHub/serverless automation, or client applications may become callers if a later approved implementation needs them. None becomes tenant authority, suppression truth, destination truth, audit truth, or required runtime infrastructure.
 
 ## Later only if demonstrated
 
