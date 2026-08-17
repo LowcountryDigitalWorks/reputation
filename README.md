@@ -2,9 +2,14 @@
 
 Lowcountry Digital Works Reputation is a privacy-first review-request foundation for neutral customer review solicitation. It is intended to remain portable across client systems, automation engines, communication providers, and deployment environments.
 
-**Current release:** 0.1 — Product & Architecture Foundation (proposed)
+## Current state
 
-Release 0.1 defines product, security, tenancy, privacy, policy, portability, provider, and deployment boundaries. It does **not** implement the Reputation application, process customer or patient data, provision production infrastructure, send email or SMS, connect to Google Business Profile APIs, or deploy an automation engine.
+**Accepted product baseline:** 0.1 — Product & Architecture Foundation — **ACCEPTED / STABLE**
+
+- accepted baseline commit: `65a6c6ce5feac4aa243f0021d26aa5f40694b386`
+- accepted baseline tree: `30d73fba4ad69d9a3952b9d1e47b70e94bd55fcf`
+
+Release 0.1 is an architecture/documentation foundation only. No functional Reputation runtime exists. It defines product, security, tenancy, privacy, policy, portability, provider, and deployment boundaries, but it does **not** process customer or patient data, provision production infrastructure, send email or SMS, connect to Google Business Profile APIs, or require an automation engine.
 
 ## Product position
 
@@ -20,13 +25,34 @@ The evidence model preserves this invariant:
 
 A click is never treated as proof that a review was submitted or published.
 
-## First intended functional target
+## Current service-first model
 
-After Release 0.1 is independently reviewed and separately authorized, the intended first functional slice is **Mode A**:
+Reputation product code is not the default answer to a client's review-request need. LDW should first:
+
+1. inspect the client's existing CRM, scheduling, POS, review, and email capabilities;
+2. configure or integrate the least-cost adequate native capability;
+3. use official customer-controlled review destinations;
+4. add Reputation product code only when a demonstrated recurring gap remains.
+
+Activepieces or another workflow engine is not required for this model.
+
+## Mode A readiness
+
+**Final disposition: C — DEFER MODE A.** Mode A is **not authorized for implementation** and remains deferred pending demonstrated customer need.
+
+Its accepted conceptual boundary remains:
 
 `client system -> neutral customer follow-up -> LDW Reputation branded destination -> administrator-configured official review destination`
 
-Mode A is designed so Reputation does not need a recipient list. The branded destination must resolve only to an administrator-configured destination; arbitrary browser-supplied redirect targets are prohibited.
+If reconsidered, Mode A is designed so Reputation does not need a recipient list. The branded destination must resolve only to an administrator-configured destination; arbitrary browser-supplied redirect targets are prohibited.
+
+Reconsideration may be justified by demonstrated needs such as:
+
+- multi-location authoritative review-destination management;
+- portable branded review URLs or QR codes;
+- required aggregate click evidence unavailable from native tooling;
+- customers without equivalent native review-request automation;
+- another recurring cross-platform gap where a narrow Reputation core creates material customer value.
 
 ## Architecture
 
@@ -45,7 +71,7 @@ Start with:
 
 ## Reference runtime
 
-Cloudflare Workers, D1, Queues, and Cron Triggers are the initial **reference architecture**, not product semantics. No Cloudflare resources are provisioned in Release 0.1. Domain and application behavior must remain portable to reasonable alternatives such as a Node/container runtime with SQLite or PostgreSQL.
+Cloudflare Workers, D1, Queues, and Cron Triggers are the initial **reference architecture**, not product semantics. Release 0.1 provisioned no Cloudflare resources. Domain and application behavior must remain portable to reasonable alternatives such as a Node/container runtime with SQLite or PostgreSQL.
 
 Current Cloudflare Free/Paid limits and reconsideration thresholds are recorded in [Cost and scaling](docs/operations/COST_AND_SCALING.md) with a research date and primary-source links.
 
@@ -61,6 +87,6 @@ This repository is licensed under the [Apache License 2.0](LICENSE). The rationa
 
 ## Release process
 
-Meaningful work uses focused branches and pull requests. `main` is intended to follow the LDW organization governance baseline: no deletion or force-push, linear history, PR-only changes, resolved review threads, squash-only merge, and the repository validation check.
+Meaningful work uses focused branches and pull requests. `main` follows the LDW organization governance baseline: no deletion or force-push, linear history, PR-only changes, resolved review threads, squash-only merge, and the required repository validation check.
 
-Release 0.1 must remain unmerged until independently reviewed by the authoritative LDW orchestrator.
+Future functional releases require separate authorization and demonstrated customer value.
