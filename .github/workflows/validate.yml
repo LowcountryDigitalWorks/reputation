@@ -1,0 +1,68 @@
+name: validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Repository hygiene
+        shell: bash
+        run: |
+          git diff --check
+          test -f README.md
+          test -f SECURITY.md
+          test -f CONTRIBUTING.md
+          test -f LICENSE
+          test -f docs/PRODUCT.md
+          test -f docs/security/THREAT_MODEL.md
+
+      - name: Validate internal Markdown links
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path('.')
+          failures = []
+          pattern = re.compile(r'(?<!!)\[[^\]]+\]\(([^)]+)\)')
+          for md in root.rglob('*.md'):
+              text = md.read_text(encoding='utf-8')
+              for target in pattern.findall(text):
+                  target = target.strip()
+                  if not target or target.startswith(('http://', 'https://', 'mailto:', '#')):
+                      continue
+                  path_part = target.split('#', 1)[0]
+                  if not path_part:
+                      continue
+                  candidate = (md.parent / path_part).resolve()
+                  try:
+                      candidate.relative_to(root.resolve())
+                  except ValueError:
+                      failures.append(f'{md}: link escapes repository: {target}')
+                      continue
+                  if not candidate.exists():
+                      failures.append(f'{md}: missing internal link target: {target}')
+          if failures:
+              raise SystemExit('\n'.join(failures))
+          PY
+
+      - name: Secret pattern check
+        shell: bash
+        run: |
+          if git grep -nEI '(BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|sk-[A-Za-z0-9_-]{20,}|gh[pour]_[A-Za-z0-9]{20,}|ghs_[A-Za-z0-9._-]{36,}|github_pat_[A-Za-z0-9_]{20,})' -- . \
+              ':(exclude)*.lock' ':(exclude)*.svg'; then
+            echo "Potential secret pattern found."
+            exit 1
+          fi
