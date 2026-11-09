@@ -1,6 +1,6 @@
 # MVP and Roadmap
 
-The accepted product baseline is Release 0.1. No functional Reputation implementation is currently authorized.
+The accepted product baseline is Release 0.1. Portfolio development is **ACTIVE** as of 2026-11-09 under owner direction, with the bounded Website Growth/reputation module research tracked in [issue #7](https://github.com/LowcountryDigitalWorks/reputation/issues/7). Reactivating product research does not authorize functional implementation, customer data, integrations, delivery, or production infrastructure. No functional Reputation runtime exists.
 
 ## 0.1 — Product & Architecture Foundation
 
