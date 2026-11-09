@@ -8,13 +8,15 @@ Lowcountry Digital Works Reputation is a privacy-first review-request foundation
 
 **Current documentation maintenance:** 0.1.1 — Accepted-State Documentation Maintenance
 
-**Portfolio state:** **DORMANT** — no functional Reputation implementation is currently authorized.
+**Portfolio state:** **ACTIVE DEVELOPMENT** — bounded product and service-module development is active; no functional Reputation runtime is authorized by this status.
+
+Owner direction (2026-11-09) reactivates product development after the prior dormant portfolio state. The active next step is the Website Growth/reputation module research tracked in [issue #7](https://github.com/LowcountryDigitalWorks/reputation/issues/7). This status change does not authorize customer data, integrations, delivery, production infrastructure, or functional runtime implementation.
 
 - accepted product-baseline commit: `65a6c6ce5feac4aa243f0021d26aa5f40694b386`
 - accepted product-baseline tree: `30d73fba4ad69d9a3952b9d1e47b70e94bd55fcf`
 - accepted 0.1.1 documentation-maintenance baseline: `8e97aecfc75cf1b4c45126606a5521da31fcd565`
 
-Release 0.1 is an architecture/documentation foundation only. Release 0.1.1 synchronized that foundation to the accepted deferred state without adding runtime functionality. No functional Reputation runtime exists. The repository defines product, security, tenancy, privacy, policy, portability, provider, and deployment boundaries, but it does **not** process customer or patient data, provision production infrastructure, send email or SMS, connect to Google Business Profile APIs, or require an automation engine.
+Release 0.1 is an architecture/documentation foundation only. Release 0.1.1 synchronized that foundation to the then-deferred state without adding runtime functionality. No functional Reputation runtime exists. The repository defines product, security, tenancy, privacy, policy, portability, provider, and deployment boundaries, but it does **not** process customer or patient data, provision production infrastructure, send email or SMS, connect to Google Business Profile APIs, or require an automation engine.
 
 ## Product position
 
