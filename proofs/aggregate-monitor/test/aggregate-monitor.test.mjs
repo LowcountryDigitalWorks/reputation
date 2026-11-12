@@ -41,3 +41,24 @@ test('rejects invalid maxAgeHours',()=>assert.throws(()=>run(now,old,{...time,ma
 test('rejects missing asOf for deterministic comparison',()=>assert.throws(()=>run(now,old,{}),/timestamp/));
 test('output does not include reviews or contacts',()=>{const s=JSON.stringify(run());assert.ok(!s.includes('patient@example.com'));assert.ok(!s.includes('reviewer'));assert.ok(!s.includes('reviewText'));});
 test('deterministic output repeated input is byte-identical',()=>assert.equal(JSON.stringify(run()),JSON.stringify(run())));
+
+test('GBP API observation requires Content policy acceptance before aggregate comparison',()=>{
+  const apiNow={...now,source:'google_business_profile_official_api'};
+  const apiBefore={...old,source:'google_business_profile_official_api'};
+  const report=run(apiNow,apiBefore);
+  assert.equal(report.coverage,'API_CONTENT_POLICY_HOLD');
+  assert.equal(report.comparison,'COVERAGE_HOLD');
+  assert.equal(report.reviewCount.netDelta,null);
+  assert.equal(report.customerDeliveryAuthorized,false);
+});
+test('unapproved GBP API source still reports not authorized, never zero',()=>{
+  const report=run({...now,source:'google_business_profile_official_api',state:'not_authorized',rating:null,reviewCount:null,unrepliedCount:null},null);
+  assert.equal(report.coverage,'NOT_AUTHORIZED');
+  assert.equal(report.reviewCount.current,null);
+});
+test('manual native GBP observations remain diffable pending service gate',()=>{
+  const report=run();
+  assert.equal(report.coverage,'CURRENT_AS_OF');
+  assert.equal(report.reviewCount.netDelta,3);
+  assert.equal(report.productionMonitoringEnabled,false);
+});
