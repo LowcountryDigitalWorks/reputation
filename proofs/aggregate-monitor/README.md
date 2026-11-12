@@ -40,6 +40,23 @@ Every output says **OFFLINE_SOURCE_ONLY_NOT_PROVIDER_VERIFIED** with `customerDe
 | G.A.S./GSC/Clarity/ZeroRank | Search and traffic evidence, **not** evidence of new reviews, review requests, or reply completion. |
 | MGR | LDW owner KEEP for ordinary SMB use; DFD data-flow and hosted free-text form remain separate healthcare gates. |
 
+
+## Human-invoked stdin comparison — no persistence
+
+The optional tool `tools/compare-manual.mjs` wraps the **already accepted pure module**, so a permitted operator can locally compare *two separately verified native GBP aggregate observations*. It does not read a file path, write an output file, call a provider, auto-discover locations, or create a customer report. Read-only source-only proof: do not send the output externally without the separate ClientOps/reporting release gates.
+
+Paste an input object into stdin interactively and terminate stdin, or feed a **fictional** fixture in a local shell. Example with fictional numbers (never real customer data in this public repo):
+
+```sh
+node proofs/aggregate-monitor/tools/compare-manual.mjs <<'JSON'
+{"previous":{"schema":"ldw.reputation.public-aggregate.v1","locationKey":"fictional-harbor-market","source":"google_business_profile_manual","state":"observed","observedAt":"2026-11-09T12:00:00Z","rating":4.25,"reviewCount":12,"unrepliedCount":null},"current":{"schema":"ldw.reputation.public-aggregate.v1","locationKey":"fictional-harbor-market","source":"google_business_profile_manual","state":"observed","observedAt":"2026-11-12T12:00:00Z","rating":4.33,"reviewCount":16,"unrepliedCount":null},"asOf":"2026-11-12T13:00:00Z"}
+JSON
+```
+
+The request has exactly `previous` (observation or `null`), `current`, and `asOf`, with optional `maxAgeHours`. All timestamps must be operator-supplied UTC seconds and every observation has a closed schema. An attempted reviewer name, clinical text, patient email, token or other field causes exit status 2 with only `AGGREGATE_INPUT_HOLD` on stderr and *no partial output or echoed input*. Input is limited to 16 KiB, and all other source guards (including Google API Content policy hold) remain enforced.
+
+Do **not** feed PHI, Google review bodies, customer lists or credentials into this tool. For any real clinic observation, use the approved local/private execution surface and client-owned record; never commit real site names, identifiers, private URL tokens or results to this public repo, GitHub issues or shared logs. The human operator must still check native Google, observe the verified time, obtain permission for storage/reporting, and have an agreed monitoring cadence; this tool does none of those things. Test with `node --test proofs/aggregate-monitor/test/*.test.mjs`.
+
 ## Future operating and release gates
 
 1. Verify each client's delegated native GBP role and official review destination. Never put review content/identities, patient or customer lists, tokens, business account IDs in this public repo.
