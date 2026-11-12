@@ -80,4 +80,5 @@ jobs:
         run: |
           node --version
           node --check proofs/aggregate-monitor/src/aggregate-monitor.mjs
-          node --test proofs/aggregate-monitor/test/aggregate-monitor.test.mjs
+          node --check proofs/aggregate-monitor/tools/compare-manual.mjs
+          node --test proofs/aggregate-monitor/test/*.test.mjs
