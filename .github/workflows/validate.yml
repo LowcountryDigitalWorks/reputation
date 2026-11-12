@@ -74,3 +74,10 @@ jobs:
             echo "Potential secret pattern found."
             exit 1
           fi
+
+      - name: Aggregate reputation monitoring fixtures (source-only)
+        shell: bash
+        run: |
+          node --version
+          node --check proofs/aggregate-monitor/src/aggregate-monitor.mjs
+          node --test proofs/aggregate-monitor/test/aggregate-monitor.test.mjs
