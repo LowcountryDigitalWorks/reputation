@@ -69,3 +69,32 @@ test('manual native GBP observations remain diffable pending service gate',()=>{
   assert.equal(report.reviewCount.netDelta,3);
   assert.equal(report.productionMonitoringEnabled,false);
 });
+
+test('nested metric DTOs are immutable in a normal comparison report',()=>{
+  const result=run();
+  assert.ok(Object.isFrozen(result));
+  for(const field of ['rating','reviewCount','unrepliedCount']) assert.ok(Object.isFrozen(result[field]),field);
+  assert.throws(()=>{result.reviewCount.netDelta=999;},TypeError);
+  assert.throws(()=>{result.rating.current=5;},TypeError);
+  assert.throws(()=>{result.unrepliedCount.state='MANIPULATED';},TypeError);
+  assert.equal(result.reviewCount.netDelta,3);
+  assert.equal(result.rating.current,4.8);
+  assert.equal(result.unrepliedCount.state,'UNKNOWN');
+});
+test('nested metric DTOs are immutable across held paths',()=>{
+  const api=run({...now,source:'google_business_profile_official_api'});
+  const missing=run({...now,state:'unavailable',rating:null,reviewCount:null,unrepliedCount:null});
+  const conflict=run({...old,reviewCount:52},old);
+  for(const result of [api,missing,conflict]){
+    assert.ok(Object.isFrozen(result));
+    for(const field of ['rating','reviewCount','unrepliedCount']) assert.ok(Object.isFrozen(result[field]),field);
+    assert.throws(()=>{result.reviewCount.current=123;},TypeError);
+  }
+});
+test('duplicate path cannot be altered after reconciliation',()=>{
+  const result=run(old,old);
+  assert.equal(result.comparison,'IDENTICAL_OBSERVATION');
+  assert.ok(Object.isFrozen(result.reviewCount));
+  assert.throws(()=>{result.reviewCount.netDelta=12;},TypeError);
+  assert.equal(result.reviewCount.netDelta,null);
+});
