@@ -56,6 +56,15 @@ function quality(snapshot, asOf, maxAgeHours) {
   return age > maxAgeHours ? 'STALE' : 'CURRENT_AS_OF';
 }
 
+// Freeze every nested DTO after all comparisons/mutations have completed.
+// Object.freeze(report) alone would permit changing reviewCount.netDelta.
+function finalizeReport(report) {
+  Object.freeze(report.rating);
+  Object.freeze(report.reviewCount);
+  Object.freeze(report.unrepliedCount);
+  return Object.freeze(report);
+}
+
 /** All times are caller-supplied UTC, making the comparison deterministic. */
 export function compareAggregateObservations(previousInput, currentInput, {asOf, maxAgeHours = 336} = {}) {
   const previous = previousInput === null ? null : validateObservation(previousInput);
@@ -84,22 +93,22 @@ export function compareAggregateObservations(previousInput, currentInput, {asOf,
   };
   if (coverage !== 'CURRENT_AS_OF') {
     output.comparison = 'COVERAGE_HOLD';
-    return Object.freeze(output);
+    return finalizeReport(output);
   }
-  if (!previous) return Object.freeze(output);
+  if (!previous) return finalizeReport(output);
   if (previous.locationKey !== current.locationKey) reject('cross-location comparison prohibited');
-  if (previous.source !== current.source) { output.comparison = 'SOURCE_CHANGED_HOLD'; return Object.freeze(output); }
+  if (previous.source !== current.source) { output.comparison = 'SOURCE_CHANGED_HOLD'; return finalizeReport(output); }
   const previousTime = isoUtc(previous.observedAt);
   const currentTime = isoUtc(current.observedAt);
-  if (previousTime > currentTime) { output.comparison = 'OUT_OF_ORDER_HOLD'; return Object.freeze(output); }
+  if (previousTime > currentTime) { output.comparison = 'OUT_OF_ORDER_HOLD'; return finalizeReport(output); }
   if (previousTime === currentTime) {
-    if ([...KEYS].some(key => previous[key] !== current[key])) { output.comparison = 'CONFLICTING_SAME_TIMESTAMP_HOLD'; return Object.freeze(output); }
+    if ([...KEYS].some(key => previous[key] !== current[key])) { output.comparison = 'CONFLICTING_SAME_TIMESTAMP_HOLD'; return finalizeReport(output); }
     output.comparison = 'IDENTICAL_OBSERVATION';
-    return Object.freeze(output);
+    return finalizeReport(output);
   }
-  if (previous.state !== 'observed') { output.comparison = 'PREVIOUS_COVERAGE_HOLD'; return Object.freeze(output); }
+  if (previous.state !== 'observed') { output.comparison = 'PREVIOUS_COVERAGE_HOLD'; return finalizeReport(output); }
   output.rating.displayedDelta = Number((current.rating - previous.rating).toFixed(2));
   output.reviewCount.netDelta = current.reviewCount - previous.reviewCount;
   output.comparison = output.reviewCount.netDelta < 0 ? 'COUNT_DECREASED_RECONCILE' : output.reviewCount.netDelta > 0 ? 'NET_COUNT_INCREASED' : 'NO_NET_COUNT_CHANGE';
-  return Object.freeze(output);
+  return finalizeReport(output);
 }
