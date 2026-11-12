@@ -49,6 +49,10 @@ function quality(snapshot, asOf, maxAgeHours) {
   if (age < 0) return 'FUTURE_OBSERVATION_HOLD';
   if (snapshot.state === 'not_authorized') return 'NOT_AUTHORIZED';
   if (snapshot.state === 'unavailable') return 'UNAVAILABLE';
+  // GBP API Content storage/aggregation terms require separate policy approval.
+  // Do not promote an API-derived observation into a historical report merely
+  // because OAuth and quota were granted. Manual native observations are distinct.
+  if (snapshot.source === 'google_business_profile_official_api') return 'API_CONTENT_POLICY_HOLD';
   return age > maxAgeHours ? 'STALE' : 'CURRENT_AS_OF';
 }
 
