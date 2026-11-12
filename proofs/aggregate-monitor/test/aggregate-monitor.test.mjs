@@ -19,7 +19,14 @@ test('identical timestamp and data gives idempotent observation',()=>assert.equa
 test('conflicting same timestamp holds',()=>assert.equal(run({...old,reviewCount:52},old).comparison,'CONFLICTING_SAME_TIMESTAMP_HOLD'));
 test('old timestamp holds',()=>assert.equal(run(old,now).comparison,'OUT_OF_ORDER_HOLD'));
 test('cross-location comparison rejected',()=>assert.throws(()=>run({...now,locationKey:'other-site'}),/cross-location/));
-test('source changes hold without cross-provider metric comparison',()=>assert.equal(run({...now,source:'google_business_profile_official_api'}).comparison,'SOURCE_CHANGED_HOLD'));
+test('API source changes hit stricter policy gate before source comparison',()=>{
+  const result=run({...now,source:'google_business_profile_official_api'});
+  assert.equal(result.coverage,'API_CONTENT_POLICY_HOLD');
+  assert.equal(result.comparison,'COVERAGE_HOLD');
+});
+test('switching away from an API previous observation still blocks provenance mismatch',()=>{
+  assert.equal(run(now,{...old,source:'google_business_profile_official_api'}).comparison,'SOURCE_CHANGED_HOLD');
+});
 test('missing prior snapshot is baseline only',()=>assert.equal(run(now,null).comparison,'BASELINE_ONLY'));
 test('data stale relative to fixed clock',()=>assert.equal(run(now,old,{asOf:'2026-12-10T13:00:00Z'}).comparison,'COVERAGE_HOLD'));
 test('future observation not allowed to appear current',()=>assert.equal(run(now,old,{asOf:'2026-11-11T13:00:00Z'}).coverage,'FUTURE_OBSERVATION_HOLD'));
