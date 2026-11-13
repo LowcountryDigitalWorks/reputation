@@ -47,6 +47,23 @@ MGR currently advertises: project MCP, API and webhooks; Google/Facebook review 
 Known narrower outcomes may be accepted while other families remain `UNASSESSED`. Do not label MGR as fully production-ready from branding success.
 
 
+## MGR webhook event semantics — provider-documented safety gate (November 2026)
+
+MGR's [first-party Webhooks guide](https://docs.moregoodreviews.com/platform/webhooks) says **`review-created` can fire when an email/SMS recipient clicks a rating link and the landing page saves the selected rating, before any form text or feedback is submitted**. A later **`review-updated`** may indicate that MGR's *first-party feedback form* has received additional content, but can also represent an update to existing MGR feedback. Neither event is an independently published **Google/Facebook review** or an authorized public-reply action. `message-created` can mean **created or scheduled**, not delivered; MGR separates message update from actual delivery state.
+
+**Evidence classification (for any future, separately authorized integration):**
+
+| MGR event | What the event can establish | Do not infer |
+| --- | --- | --- |
+| `review-created` | An MGR project rating/feedback record was created; may be the **rating-link click alone** | Customer submitted the form, public Google review published, net new public reviews, authentic patient/customer testimonial |
+| `review-updated` | MGR's existing rating/feedback record was updated, possibly after written feedback | A new unique external public review or accepted public owner reply |
+| `message-created` | MGR request message created or **scheduled** | Provider delivered it, recipient read it or a public review resulted |
+| `message-updated` | An MGR message status changed | Receipt/consent, successful delivery, review publication or customer-report acceptance |
+
+**Security and privacy hold:** MGR's guide states webhooks can send the **full review/message payload**, are retried on non-successful endpoint responses, and include `X-Webhook-Signature` as a `sha256=` HMAC-SHA256 digest of the **exact raw body** using the per-project API Secret Key. Such a provider signature only supports origin/integrity verification after correct secret handling; it is **not** tenant/customer authorization or proof of published Google review. An accepted implementation would additionally need exact project/tenant authorization, approved data minimization, secret rotation and secure storage, replay/idempotency controls, retry/reconciliation plan, bounded retention, and customer/consent/regulated-data assessments. Never copy raw webhook bodies, signatures, names, review text, patient/PHI or API keys into public GitHub, ordinary logs or the private research shelf.
+
+**Current release status: `WEBHOOK_NOT_CONFIGURED_BY_REPUTATION / NO_EVENT_INGESTION / NO_CUSTOMER_DELIVERY`.** The project-scoped connector and this playbook do not authorize creating a webhook, enabling the automations, configuring a receiver, capturing review text, changing the tenant, submitting a synthetic rating, producing a customer report, or treating any MGR record as an externally verified public review. The accepted [offline aggregate comparator](https://github.com/LowcountryDigitalWorks/reputation/tree/main/proofs/aggregate-monitor) remains provider-independent and never ingests these webhook events. Google public-review observations must continue to come from a separately authorized, trustworthy native source and human review process.
+
 ## Provider-specific rating-route trap — source-verified Nov 2026
 
 MGR's [current public pricing/feature documentation](https://www.moregoodreviews.com/pricing) describes `Redirects` as sending the user to a third-party review site **if the rating is positive**, and describes `Split redirects` with the same positive-rating condition. These are **actual advertised conditional feature variants**, not a claim that every MGR review page is inherently non-neutral or that the LDW project currently uses those variants.
