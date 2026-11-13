@@ -102,3 +102,7 @@ Not authorized. Activepieces, Zoho Flow, CRM automation, GitHub/serverless autom
 - advanced reports.
 
 None of these is pre-authorized by this roadmap.
+
+## Conditional client-facing UI acceptance (no implementation authority)
+
+Any **future separately authorized** Reputation application, customer workspace, approval queue or reporting UI must meet the product-local [Client-facing UI acceptance contract](operations/CLIENT_FACING_UI_ACCEPTANCE.md). The contract carries the owner's premium, liquid-glass-inspired, **distinct product palette**, **dark-by-default with optional light mode** direction while inheriting LDW identity, accessibility and product-trust boundaries. This is a design/review gate for future proposals; it does **not** authorize a new app, customer portal, runtime, report delivery or website change.
