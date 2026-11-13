@@ -127,3 +127,34 @@ test('valid narrow freshness window includes boundary and holds one second beyon
   assert.equal(stale.reviewCount.netDelta,null);
   assert.equal(stale.customerDeliveryAuthorized,false);
 });
+
+
+test('policy-held API content is redacted from CLI output',()=>{
+  const api={...current,source:'google_business_profile_official_api'};
+  const r=invoke({...request,previous,current:api});
+  assert.equal(r.status,0,r.stderr);
+  assert.equal(r.stderr,'');
+  const report=JSON.parse(r.stdout);
+  assert.equal(report.coverage,'API_CONTENT_POLICY_HOLD');
+  assert.equal(report.currentObservedAt,null);
+  assert.equal(report.previousObservedAt,null);
+  assert.equal(report.rating.previous,null);
+  assert.equal(report.rating.current,null);
+  assert.equal(report.reviewCount.previous,null);
+  assert.equal(report.reviewCount.current,null);
+  assert.equal(report.unrepliedCount.state,'WITHHELD');
+});
+
+test('unavailable current observation withholds earlier manual metrics on CLI',()=>{
+  const missing={...current,state:'unavailable',rating:null,reviewCount:null,unrepliedCount:null};
+  const r=invoke({...request,current:missing});
+  assert.equal(r.status,0,r.stderr);
+  assert.equal(r.stderr,'');
+  const report=JSON.parse(r.stdout);
+  assert.equal(report.coverage,'UNAVAILABLE');
+  assert.equal(report.reviewCount.previous,null);
+  assert.equal(report.reviewCount.current,null);
+  assert.equal(report.rating.previous,null);
+  assert.equal(report.previousObservedAt,null);
+  assert.equal(report.unrepliedCount.state,'WITHHELD');
+});

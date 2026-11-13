@@ -59,6 +59,22 @@ function quality(snapshot, asOf, maxAgeHours) {
 // Freeze every nested DTO after all comparisons/mutations have completed.
 // Object.freeze(report) alone would permit changing reviewCount.netDelta.
 function finalizeReport(report) {
+  // A held report is diagnostic evidence only. Do not pass through metric or
+  // observation-time fields when current coverage or the comparison is held:
+  // this includes Google API Content, a revoked authorization, stale evidence
+  // and incompatible prior snapshots. A hold reason remains visible.
+  if (report.coverage !== 'CURRENT_AS_OF' || report.comparison.endsWith('_HOLD')) {
+    report.currentObservedAt = null;
+    report.previousObservedAt = null;
+    report.rating.previous = null;
+    report.rating.current = null;
+    report.rating.displayedDelta = null;
+    report.reviewCount.previous = null;
+    report.reviewCount.current = null;
+    report.reviewCount.netDelta = null;
+    report.unrepliedCount.current = null;
+    report.unrepliedCount.state = 'WITHHELD';
+  }
   Object.freeze(report.rating);
   Object.freeze(report.reviewCount);
   Object.freeze(report.unrepliedCount);

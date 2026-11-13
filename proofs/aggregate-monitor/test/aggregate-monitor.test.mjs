@@ -98,3 +98,64 @@ test('duplicate path cannot be altered after reconciliation',()=>{
   assert.throws(()=>{result.reviewCount.netDelta=12;},TypeError);
   assert.equal(result.reviewCount.netDelta,null);
 });
+
+
+test('held coverage never includes observed metrics or timestamps in the report',()=>{
+  const cases=[
+    [{...now,source:'google_business_profile_official_api'},old,time,'API_CONTENT_POLICY_HOLD'],
+    [{...now,source:'google_business_profile_official_api'},{...old,source:'google_business_profile_official_api'},time,'API_CONTENT_POLICY_HOLD'],
+    [{...now,state:'unavailable',rating:null,reviewCount:null,unrepliedCount:null},old,time,'UNAVAILABLE'],
+    [{...now,state:'not_authorized',rating:null,reviewCount:null,unrepliedCount:null},old,time,'NOT_AUTHORIZED'],
+    [now,old,{asOf:'2026-12-10T13:00:00Z'},'STALE'],
+    [now,old,{asOf:'2026-11-11T13:00:00Z'},'FUTURE_OBSERVATION_HOLD']
+  ];
+  for(const [current,previous,config,expectedCoverage] of cases){
+    const report=run(current,previous,config);
+    assert.equal(report.coverage,expectedCoverage);
+    assert.equal(report.comparison,'COVERAGE_HOLD');
+    assert.equal(report.currentObservedAt,null);
+    assert.equal(report.previousObservedAt,null);
+    for(const kind of ['rating','reviewCount']){
+      assert.equal(report[kind].previous,null);
+      assert.equal(report[kind].current,null);
+    }
+    assert.equal(report.rating.displayedDelta,null);
+    assert.equal(report.reviewCount.netDelta,null);
+    assert.equal(report.unrepliedCount.current,null);
+    assert.equal(report.unrepliedCount.state,'WITHHELD');
+    assert.equal(report.customerDeliveryAuthorized,false);
+  }
+});
+
+test('source mismatch, conflicting timestamp and out-of-order holds redact all metrics',()=>{
+  const cases=[
+    [now,{...old,source:'google_business_profile_official_api'},'SOURCE_CHANGED_HOLD'],
+    [{...old,reviewCount:52},old,'CONFLICTING_SAME_TIMESTAMP_HOLD'],
+    [old,now,'OUT_OF_ORDER_HOLD']
+  ];
+  for(const [current,previous,expected] of cases){
+    const report=run(current,previous);
+    assert.equal(report.comparison,expected);
+    assert.equal(report.currentObservedAt,null);
+    assert.equal(report.previousObservedAt,null);
+    assert.equal(report.rating.previous,null);
+    assert.equal(report.rating.current,null);
+    assert.equal(report.reviewCount.previous,null);
+    assert.equal(report.reviewCount.current,null);
+    assert.equal(report.reviewCount.netDelta,null);
+    assert.equal(report.unrepliedCount.state,'WITHHELD');
+  }
+});
+
+test('healthy manual baseline and comparison still expose aggregate values with provenance',()=>{
+  const baseline=run(now,null);
+  assert.equal(baseline.comparison,'BASELINE_ONLY');
+  assert.equal(baseline.reviewCount.current,54);
+  assert.equal(baseline.currentObservedAt,now.observedAt);
+  const comparison=run();
+  assert.equal(comparison.comparison,'NET_COUNT_INCREASED');
+  assert.equal(comparison.reviewCount.current,54);
+  assert.equal(comparison.reviewCount.previous,51);
+  assert.equal(comparison.reviewCount.netDelta,3);
+  assert.equal(comparison.unrepliedCount.state,'UNKNOWN');
+});
