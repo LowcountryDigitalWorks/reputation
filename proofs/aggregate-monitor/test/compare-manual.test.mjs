@@ -99,3 +99,31 @@ test('invalid max age rejects without escaping to stdout',()=>{
   reject({...request,maxAgeHours:0});
   reject({...request,maxAgeHours:'24'});
 });
+
+test('previous null emits baseline only without attributed review or inferred deltas',()=>{
+  const r=invoke({...request,previous:null});
+  assert.equal(r.status,0,r.stderr);
+  const o=JSON.parse(r.stdout);
+  assert.equal(o.coverage,'CURRENT_AS_OF');
+  assert.equal(o.comparison,'BASELINE_ONLY');
+  assert.equal(o.rating.previous,null);
+  assert.equal(o.rating.displayedDelta,null);
+  assert.equal(o.reviewCount.previous,null);
+  assert.equal(o.reviewCount.netDelta,null);
+  assert.equal(o.newReviewsAttributed,null);
+  assert.equal(o.customerDeliveryAuthorized,false);
+});
+test('valid narrow freshness window includes boundary and holds one second beyond',()=>{
+  const boundary=invoke({...request,maxAgeHours:1});
+  assert.equal(boundary.status,0,boundary.stderr);
+  const accepted=JSON.parse(boundary.stdout);
+  assert.equal(accepted.coverage,'CURRENT_AS_OF');
+  assert.equal(accepted.reviewCount.netDelta,4);
+  const later=invoke({...request,maxAgeHours:1,asOf:'2026-11-12T13:00:01Z'});
+  assert.equal(later.status,0,later.stderr);
+  const stale=JSON.parse(later.stdout);
+  assert.equal(stale.coverage,'STALE');
+  assert.equal(stale.comparison,'COVERAGE_HOLD');
+  assert.equal(stale.reviewCount.netDelta,null);
+  assert.equal(stale.customerDeliveryAuthorized,false);
+});
