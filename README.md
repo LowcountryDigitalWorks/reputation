@@ -43,9 +43,15 @@ Reputation product code is not the default answer to a client's review-request n
 
 Activepieces or another workflow engine is not required for this model.
 
-## Mode A readiness
+## G3a — unified operations UX proof (owner-directed November 13, 2026)
 
-**Final disposition: C — DEFER MODE A.** Mode A is **not authorized for implementation** and remains deferred pending demonstrated customer need.
+The owner clarified that **custom Reputation software is worth considering when a single UX creates real operator or customer value**. A local, synthetic-only [Reputation Operations Workbench](proofs/ops-workbench/README.md) is now an approved **source-only feasibility proof** within this repository. It unifies source-attributed manual observations, MGR event classification, approval/hold queue, location readiness and native vs provider provenance. It is not deployed and has no customer, provider, OAuth, backend, sender, persistence, telemetry, analytics, PHI or live actions. Review its dark-default/light-option UX, 360/390/768/1440 responsiveness and deterministic fixtures before deciding whether a real runtime is worth building.
+
+**Differentiator hypothesis:** transparent cross-source coverage, human decisions and evidence integrity—not another commodity rating dashboard or review sender. Test whether a human operator can correctly identify a rating click versus a published review, stale/withheld coverage, the next approver, and a route-policy hold within approximately one minute on four fictional scenarios. **G3b**, any real customer/production runtime or integrations, still requires explicit Product/Portfolio, tenant, privacy, cost, security and customer approvals.
+
+## Mode A runtime readiness
+
+**Mode A live/runtime remains separately gated.** The owner-authorized G3a local workbench proof is not Mode A routing and does not authorize tenant APIs, customer delivery, production infrastructure or deployment. Real Mode A is still conditional on demonstrated value and separate acceptance.
 
 Its accepted conceptual boundary remains:
 

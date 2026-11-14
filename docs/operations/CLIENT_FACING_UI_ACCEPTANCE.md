@@ -1,6 +1,6 @@
 # Client-facing UI acceptance — Reputation and future adjacent products
 
-**State:** conditional acceptance checklist only, no client-facing runtime or design release authorized.
+**State:** conditional acceptance checklist only, no client-facing runtime or design release authorized. The owner has separately authorized a **static, synthetic-only local operator workbench source proof** (G3a); this does not grant customer-facing, live-provider or deployed design release.
 **Product authority:** [Reputation #7](https://github.com/LowcountryDigitalWorks/reputation/issues/7) and the [MVP roadmap](../MVP_AND_ROADMAP.md).
 **Design source:** current approved [LDW Website design system](https://github.com/LowcountryDigitalWorks/lowcountrydigitalworks.com/blob/main/design/design-system.md), [application UX](https://github.com/LowcountryDigitalWorks/lowcountrydigitalworks.com/blob/main/design/application-ux.md), [accessibility](https://github.com/LowcountryDigitalWorks/lowcountrydigitalworks.com/blob/main/design/accessibility.md), and [production logo rules](https://github.com/LowcountryDigitalWorks/lowcountrydigitalworks.com/blob/main/brand/brand-guidelines.md). Re-read their *live* state at any future implementation gate.
 

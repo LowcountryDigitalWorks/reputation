@@ -82,3 +82,23 @@ jobs:
           node --check proofs/aggregate-monitor/src/aggregate-monitor.mjs
           node --check proofs/aggregate-monitor/tools/compare-manual.mjs
           node --test proofs/aggregate-monitor/test/*.test.mjs
+
+      - name: Unified workbench proof contracts (fictional / source-only)
+        shell: bash
+        run: |
+          node --check proofs/ops-workbench/src/fixtures.mjs
+          node --check proofs/ops-workbench/src/workbench.mjs
+          node --check proofs/ops-workbench/src/app.mjs
+          node --test proofs/ops-workbench/test/*.test.mjs
+          python - <<'PY'
+          from pathlib import Path
+          html = Path('proofs/ops-workbench/index.html').read_text(encoding='utf-8')
+          js = Path('proofs/ops-workbench/src/app.mjs').read_text(encoding='utf-8')
+          css = Path('proofs/ops-workbench/styles.css').read_text(encoding='utf-8')
+          assert "connect-src 'none'" in html and "form-action 'none'" in html
+          assert 'theme-toggle' in html and 'Skip to workbench' in html
+          assert 'noindex,nofollow,noarchive' in html
+          assert 'https://' not in html and 'http://' not in html
+          assert 'fetch(' not in js and 'localStorage' not in js and 'sessionStorage' not in js
+          assert '@media(max-width:730px)' in css and 'prefers-reduced-motion' in css
+          PY

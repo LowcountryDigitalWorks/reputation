@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="color-scheme" content="dark light">
+  <title>LDW Reputation — Fictional Operations Workbench Proof</title>
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./src/app.mjs"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to workbench</a>
+  <div class="proof-strip"><span class="proof-dot" aria-hidden="true"></span><strong>FICTIONAL DATA / SOURCE-ONLY PROOF</strong><span>No accounts, customer data, sends, or live integrations</span></div>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Workspace navigation">
+      <div class="brand"><span class="brand-shape" aria-hidden="true"><span></span><span></span><span></span></span><div><strong>Reputation</strong><small>Lowcountry Digital Works</small></div></div>
+      <div class="workspace-label">WORKSPACE <span class="mini-count">DEMO</span></div>
+      <div class="nav-label">Review operations</div>
+      <nav aria-label="Sections"><a class="nav-link active" href="#main"><span aria-hidden="true">◫</span> Operations overview <span class="nav-current">Current</span></a><a class="nav-link" href="#decisions"><span aria-hidden="true">☷</span> Decision queue</a><a class="nav-link" href="#evidence"><span aria-hidden="true">⌁</span> Evidence sources</a></nav>
+      <div class="side-divider"></div><div class="nav-label">Fictional locations</div>
+      <div id="locations" class="locations" aria-label="Choose fictional location"></div>
+      <div class="sidebar-bottom"><span class="tiny-icon">◎</span><div><strong>Human-first operations</strong><p>Proofs and permissions before automation.</p></div></div>
+    </aside>
+    <main id="main" tabindex="-1">
+      <header class="topbar"><div class="crumb">Workspace <span aria-hidden="true">/</span> <strong>Overview</strong></div><div class="top-actions"><span class="static-clock" id="fixture-clock"></span><button type="button" id="theme-toggle" class="theme-button" aria-label="Switch to light mode" aria-pressed="false"><span aria-hidden="true">☀</span> Light mode</button><span class="avatar" aria-label="Fictional operator">LD</span></div></header>
+      <div class="main-content">
+        <div class="eyebrow"><span class="eyebrow-square" aria-hidden="true"></span> OPERATIONS / EVIDENCE WORKBENCH</div>
+        <div class="headline"><div><h1>Reputation, with proof.</h1><p>One operator view across native observations, provider signals, and human decisions—without pretending they are the same thing.</p></div><div class="demo-note"><span aria-hidden="true">✳</span><div><strong>Local prototype</strong><span>All figures are invented. Nothing here is connected.</span></div></div></div>
+        <section class="summary-grid" aria-label="Fictional portfolio summary"><article class="summary-card"><div class="summary-label">Fictional workspaces <span>↗</span></div><div class="summary-value" id="workspaces-count">4</div><p>For workflow evaluation only</p></article><article class="summary-card"><div class="summary-label">Locations on hold <span>◇</span></div><div class="summary-value" id="hold-count">—</div><p>Awaiting evidence or permission</p></article><article class="summary-card"><div class="summary-label">Outstanding decisions <span>☰</span></div><div class="summary-value" id="decision-count">—</div><p>Not automated actions</p></article><article class="summary-card accent"><div class="summary-label">Live services activated <span>○</span></div><div class="summary-value">0</div><p>Production integrations disabled</p></article></section>
+        <div class="section-intro"><div><div class="section-kicker">SELECTED LOCATION</div><h2 id="location-title">Harbor Pine Printworks</h2><p id="location-kind"></p></div><div class="status-pill" id="location-status" aria-live="polite">HOLD</div></div>
+        <section class="metric-grid" aria-label="Source-attributed fictional metrics">
+          <article class="metric-card"><div class="metric-head"><span class="metric-symbol metric-symbol-purple" aria-hidden="true">◈</span><span class="evidence-label">MANUAL / FICTIONAL</span></div><span class="metric-title">Public review count</span><strong class="metric-num" id="public-count">—</strong><span id="count-sub" class="metric-foot"></span></article>
+          <article class="metric-card"><div class="metric-head"><span class="metric-symbol metric-symbol-gold" aria-hidden="true">✧</span><span class="evidence-label">NOT ATTRIBUTED</span></div><span class="metric-title">Displayed rating</span><strong class="metric-num" id="rating">—</strong><span class="metric-foot" id="rating-sub">Native source only</span></article>
+          <article class="metric-card"><div class="metric-head"><span class="metric-symbol metric-symbol-blue" aria-hidden="true">≋</span><span class="evidence-label">PROVIDER SIGNAL</span></div><span class="metric-title">MGR route</span><strong class="metric-text" id="mgr-status">—</strong><span class="metric-foot">Routing status only; no public-review attribution</span></article>
+        </section>
+        <div class="work-grid">
+          <section class="panel" id="decisions" aria-labelledby="decisions-heading"><div class="panel-header"><div><span class="section-kicker">01 / APPROVALS</span><h3 id="decisions-heading">Decisions before delivery</h3></div><span class="panel-count" id="task-count">—</span></div><p class="panel-description">What needs to be verified or approved before a real operator could proceed.</p><div class="filter-row" role="group" aria-label="Filter decisions"><button class="filter-button selected" data-filter="all" aria-pressed="true">All</button><button class="filter-button" data-filter="hold" aria-pressed="false">Holds</button><button class="filter-button" data-filter="human" aria-pressed="false">Human review</button></div><div id="task-list" class="task-list" aria-live="polite"></div></section>
+          <section class="panel" id="evidence" aria-labelledby="evidence-heading"><div class="panel-header"><div><span class="section-kicker">02 / SOURCE LENS</span><h3 id="evidence-heading">Evidence, not inference</h3></div><span class="verified-dot"><span aria-hidden="true">◉</span> PROVENANCE FIRST</span></div><p class="panel-description">Separate externally observed facts from internal activity and missing coverage.</p><div id="evidence-list" class="evidence-list"></div><div class="policy-note"><strong>Policy guard active</strong><p>A rating click is not a posted review. Missing observations are not zero. Public replies always require human authority.</p></div></section>
+        </div>
+        <section class="bottom-panel" aria-label="Proof boundary"><div class="bottom-graphic" aria-hidden="true">⌁</div><div><strong>Prototype boundary</strong><p id="boundary-summary">No provider connections. No messages, public replies, service approvals, or customer reports can be issued from this workbench.</p></div><span class="boundary-tag">SOURCE ONLY</span></section>
+        <footer><span>LDW Reputation / workbench exploration</span><span>Fictional fixture clock • No telemetry • No persistence</span></footer>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
