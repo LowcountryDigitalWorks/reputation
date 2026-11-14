@@ -7,10 +7,10 @@
 From the repository root:
 
 ```sh
-python3 -m http.server 8765 --bind 127.0.0.1 --directory proofs/ops-workbench
+python3 -m http.server 8765 --bind 127.0.0.1 --directory .
 ```
 
-Visit `http://127.0.0.1:8765/` **locally**. Do not expose this development server publicly. Close it after review. Tests: `node --test proofs/ops-workbench/test/*.test.mjs` from the repository root.
+Visit `http://127.0.0.1:8765/proofs/ops-workbench/` **locally**. The HTTP root must be the **repository root** because the source-only workbench imports the accepted sibling `proofs/aggregate-monitor/src/aggregate-monitor.mjs`; serving only the `proofs/ops-workbench/` subdirectory would make that module return 404. Do not expose this development server publicly. Close it after review. Tests: `node --test proofs/ops-workbench/test/*.test.mjs` from the repository root.
 
 ## Source and authorization contract
 
