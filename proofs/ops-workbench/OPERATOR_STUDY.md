@@ -12,12 +12,12 @@ You will see four invented businesses. Work independently without explanations o
 
 For each of the following fictional cases, select the location and investigate as needed. The four questions are deliberately the same for all cases:
 
-- **Q1 — Source:** What native/public-review evidence is actually supported, and when was it observed? If not current or not available, say so.
-- **Q2 — Provider:** What does the MGR activity establish, if anything? What cannot be concluded from that signal?
-- **Q3 — Authority:** What human approval, verification or policy check must happen before the next real-world action?
-- **Q4 — Outcome:** Is a request delivery or a newly published public review established by this view? Is any live customer action authorized here?
+- **Q1 — Status:** What facts would you include in a short status update? Say where they came from and when.
+- **Q2 — Activity:** What other activity or events can you find? What do they establish, and what remains uncertain?
+- **Q3 — Next steps:** What would need to be decided or checked next, and by whom?
+- **Q4 — Conclusion:** What can this fictional business safely conclude or do right now? What should remain unconfirmed?
 
-| Fictional location | Q1 Source / time | Q2 MGR evidence | Q3 Approval / policy | Q4 Delivery / publication / authority |
+| Fictional location | Q1 Status | Q2 Activity | Q3 Next steps | Q4 Conclusion |
 | --- | --- | --- | --- | --- |
 | Harbor Pine Printworks | | | | |
 | Cedar Quay Bicycle Shop | | | | |
