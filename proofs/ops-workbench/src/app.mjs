@@ -12,12 +12,20 @@ const fmtUtc = t => t ? new Date(t).toLocaleString('en-US',{timeZone:'UTC',year:
 const statusClass=s=>s==='HOLD'?'hold':s==='REVIEW READY'?'ready':'human';
 
 function renderLocations(){
- const mount=$('locations');mount.replaceChildren();
- for(const row of portfolio.rows){
-  const b=elem('button','location-option'+(row.id===selected?' active':''));b.type='button';b.setAttribute('aria-pressed',String(row.id===selected));
-  const mark=elem('span','location-mark',row.name.slice(0,2).toUpperCase());mark.setAttribute('aria-hidden','true');
-  const text=elem('span','location-name');text.append(elem('strong','',row.name),elem('small','',row.kind));
-  b.append(mark,text);b.addEventListener('click',()=>{selected=row.id;filter='all';syncFilter();render();});mount.append(b);
+ const mount=$('locations');
+ // Keep controls mounted so keyboard focus and mobile rail position survive selection.
+ if(!mount.children.length){
+  for(const row of portfolio.rows){
+   const b=elem('button','location-option');b.type='button';b.dataset.locationId=row.id;
+   const mark=elem('span','location-mark',row.name.slice(0,2).toUpperCase());mark.setAttribute('aria-hidden','true');
+   const text=elem('span','location-name');text.append(elem('strong','',row.name),elem('small','',row.kind));
+   b.append(mark,text);b.addEventListener('click',()=>{selected=row.id;filter='all';syncFilter();render();});mount.append(b);
+  }
+ }
+ for(const b of mount.children){
+  const active=b.dataset.locationId===selected;
+  b.classList.toggle('active',active);
+  b.setAttribute('aria-pressed',String(active));
  }
 }
 function renderTasks(row){
