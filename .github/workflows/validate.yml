@@ -101,4 +101,36 @@ jobs:
           assert 'https://' not in html and 'http://' not in html
           assert 'fetch(' not in js and 'localStorage' not in js and 'sessionStorage' not in js
           assert '@media(max-width:730px)' in css and 'prefers-reduced-motion' in css
+          # Validate the documented local HTTP root and the cross-proof ES module:
+          # the workbench imports a sibling under proofs/aggregate-monitor.
+          from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+          from functools import partial
+          from threading import Thread
+          from urllib.request import urlopen
+          workbench_doc = Path('proofs/ops-workbench/README.md').read_text(encoding='utf-8')
+          assert 'http.server 8765 --bind 127.0.0.1 --directory .' in workbench_doc
+          assert '../../aggregate-monitor/src/aggregate-monitor.mjs' in Path(
+              'proofs/ops-workbench/src/workbench.mjs'
+          ).read_text(encoding='utf-8')
+          class QuietHandler(SimpleHTTPRequestHandler):
+              def log_message(self, *args): pass
+          server = ThreadingHTTPServer(('127.0.0.1', 0), partial(QuietHandler, directory='.'))
+          runner = Thread(target=server.serve_forever, daemon=True)
+          runner.start()
+          try:
+              base = f'http://127.0.0.1:{server.server_port}'
+              for route in (
+                  '/proofs/ops-workbench/',
+                  '/proofs/ops-workbench/styles.css',
+                  '/proofs/ops-workbench/src/app.mjs',
+                  '/proofs/ops-workbench/src/workbench.mjs',
+                  '/proofs/aggregate-monitor/src/aggregate-monitor.mjs',
+              ):
+                  with urlopen(base + route, timeout=5) as response:
+                      assert response.status == 200, route
+                      assert response.read(1), route
+          finally:
+              server.shutdown()
+              runner.join(timeout=5)
+              server.server_close()
           PY
