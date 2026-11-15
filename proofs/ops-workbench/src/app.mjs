@@ -31,6 +31,7 @@ function renderLocations(){
 function renderTasks(row){
  const mount=$('task-list');mount.replaceChildren();
  const shown=row.tasks.filter(x=>filter==='all'||x.severity===filter);
+ set('task-count',filter==='all'?row.tasks.length+' items':shown.length+' of '+row.tasks.length+' items');
  if(!shown.length){mount.append(elem('p','empty-state','No matching decisions in this fictional scenario. This is not a production readiness approval.'));return;}
  for(const t of shown){
   const details=elem('details','task');const summary=elem('summary','task-heading');
@@ -48,13 +49,13 @@ function renderEvidence(row){
  mount.append(evidenceRow('◈','Native Google observation',r.coverage==='CURRENT_AS_OF'?'SAMPLE ONLY':r.coverage,`${row.publicEvidence} · ${fmtUtc(r.currentObservedAt)}`,'purple'));
  mount.append(evidenceRow('≋','MGR first-party signal','NOT PUBLIC',row.mgrEvidence,'gold'));
  mount.append(evidenceRow('✉','Delivery lifecycle','NOT EVIDENCE',row.messageEvidence,'blue'));
- mount.append(evidenceRow('☑','Public reply authority',row.replyQueue==='approval_required'?'HUMAN HOLD':'UNVERIFIED','No reply text, recipient data, or publishing capability in this prototype.','grey'));
+ mount.append(evidenceRow('☑','Public reply authority',row.replyQueue==='approval_required'?'HUMAN HOLD':row.replyQueue==='none'?'NO REPLY QUEUED':'UNVERIFIED','No reply text, recipient data, or publishing capability in this prototype.','grey'));
 }
 function render(){
  const row=portfolio.rows.find(x=>x.id===selected);
  set('location-title',row.name);set('location-kind',row.kind+' · '+row.owner);
  $('location-status').textContent=row.status;$('location-status').className='status-pill '+statusClass(row.status);
- set('task-count',row.tasks.length+' items');set('public-count',row.report.reviewCount.current===null?'Withheld':row.report.reviewCount.current);
+ set('public-count',row.report.reviewCount.current===null?'Withheld':row.report.reviewCount.current);
  set('count-sub',row.report.reviewCount.netDelta===null?'Comparison held / baseline only':'Net count movement: '+(row.report.reviewCount.netDelta>=0?'+':'')+row.report.reviewCount.netDelta+' (not newly attributed reviews)');
  set('rating',row.report.rating.current===null?'Withheld':row.report.rating.current.toFixed(2)+' / 5');
  set('rating-sub',row.report.coverage==='CURRENT_AS_OF'?'Fictional displayed average':'Coverage hold: '+row.report.coverage);
