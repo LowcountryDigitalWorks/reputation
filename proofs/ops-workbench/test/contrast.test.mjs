@@ -42,3 +42,15 @@ test('secondary text meets 4.5:1 in both themes on page and inset backgrounds', 
     }
   }
 });
+
+test('active location labels and mark retain readable contrast in both themes', () => {
+  assert.match(css, /\.location-option\.active \.location-name small\{color:var\(--muted\)\}/);
+  for (const [theme, palette] of [['dark', dark], ['light', light]]) {
+    const label = contrast(palette['--muted'], palette['--purple-bg']);
+    const mark = contrast(palette['--bg'], palette['--purple']);
+    const border = contrast(palette['--purple'], palette['--rail']);
+    assert.ok(label >= 4.5, theme + ' active secondary label contrast ' + label.toFixed(3) + ':1');
+    assert.ok(mark >= 4.5, theme + ' active marker text contrast ' + mark.toFixed(3) + ':1');
+    assert.ok(border >= 3, theme + ' selected location border contrast ' + border.toFixed(3) + ':1');
+  }
+});
