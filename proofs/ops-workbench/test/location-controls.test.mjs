@@ -36,7 +36,7 @@ class FakeElement {
 
 test('location controls preserve node identity and selection state on rerender', async () => {
   const elements = new Map();
-  const filters = ['all', 'hold', 'human'].map(value => {
+  const filters = ['all', 'hold', 'human', 'verify'].map(value => {
     const button = new FakeElement('button');
     button.dataset.filter = value;
     return button;
@@ -82,6 +82,26 @@ test('location controls preserve node identity and selection state on rerender',
     assert.strictEqual(locationRail.children[1], second, 'filter rerender preserves location control');
     assert.equal(second.getAttribute('aria-pressed'), 'true');
     assert.equal(locationRail.children.length, 4);
+    assert.equal(fakeDocument.getElementById('task-count').textContent, '1 of 2 items',
+      'filtered count reflects what is rendered');
+
+    const replyStatus = () => fakeDocument.getElementById('evidence-list').children[3].children[2].textContent;
+    assert.equal(replyStatus(), 'HUMAN HOLD', 'pending approval remains held');
+
+    const [,, third, fourth] = locationRail.children;
+    third.click();
+    assert.equal(replyStatus(), 'UNVERIFIED', 'unknown reply queue remains unverified');
+    fourth.click();
+    assert.equal(replyStatus(), 'NO REPLY QUEUED', 'no queue is not missing authority or publication');
+
+    first.click();
+    filters[3].click();
+    assert.equal(fakeDocument.getElementById('task-count').textContent, '1 of 4 items');
+    assert.equal(fakeDocument.getElementById('task-list').children.length, 1,
+      'verify-only filter exposes the fictional verification task');
+    filters[1].click();
+    assert.equal(fakeDocument.getElementById('task-count').textContent, '2 of 4 items');
+    assert.equal(fakeDocument.getElementById('task-list').children.length, 2);
   } finally {
     if (previousDocument === undefined) delete globalThis.document;
     else globalThis.document = previousDocument;
