@@ -39,6 +39,22 @@ test('wrong location and duplicate location fail closed',()=>{
   assert.throws(()=>model({...harbor,current:{...harbor.current,locationKey:'other-location'}}),/scope/);
   assert.throws(()=>derivePortfolio([harbor,harbor],FIXTURE_CLOCK),/duplicate location/);
 });
+test('unverified MGR route is a HOLD even when all fictional approvals are present',()=>{
+  const approvals={service:true,operator:true,cadence:true,replyApprover:true};
+  const unverified=model({...harbor,approvals});
+  assert.equal(unverified.status,'HOLD','unverified public-review route cannot appear review-ready');
+  assert.ok(unverified.tasks.some(t=>t.id==='route'&&t.severity==='hold'));
+  assert.equal(unverified.customerDeliveryAuthorized,false);
+
+  // Deliberately disconnected MGR is different: authorized native-only work
+  // can be reviewed without asserting that an unverified MGR funnel is safe.
+  const nativeOnly=model({...harbor,approvals,mgr:{route:'not_connected',event:'none',delivery:'not_requested'}});
+  assert.equal(nativeOnly.status,'REVIEW READY');
+  assert.ok(nativeOnly.tasks.some(t=>t.id==='route'&&t.severity==='verify'));
+  assert.equal(nativeOnly.actionsEnabled,false);
+  assert.equal(nativeOnly.customerDeliveryAuthorized,false);
+});
+
 test('no approval choices can silently grant live production scope',()=>{
   const x=model({...harbor,approvals:{service:true,operator:true,cadence:true,replyApprover:true},mgr:{route:'neutral_verified',event:'first_party_feedback_updated',delivery:'delivered'}});
   assert.equal(x.status,'REVIEW READY');assert.equal(x.actionsEnabled,false);assert.equal(x.productionConnected,false);

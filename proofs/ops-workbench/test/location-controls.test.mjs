@@ -95,13 +95,16 @@ test('location controls preserve node identity and selection state on rerender',
     assert.equal(replyStatus(), 'NO REPLY QUEUED', 'no queue is not missing authority or publication');
 
     first.click();
-    filters[3].click();
-    assert.equal(fakeDocument.getElementById('task-count').textContent, '1 of 4 items');
-    assert.equal(fakeDocument.getElementById('task-list').children.length, 1,
-      'verify-only filter exposes the fictional verification task');
     filters[1].click();
-    assert.equal(fakeDocument.getElementById('task-count').textContent, '2 of 4 items');
-    assert.equal(fakeDocument.getElementById('task-list').children.length, 2);
+    assert.equal(fakeDocument.getElementById('task-count').textContent, '3 of 4 items');
+    assert.equal(fakeDocument.getElementById('task-list').children.length, 3,
+      'unverified MGR route is now visible among blocking holds');
+
+    third.click();
+    filters[3].click();
+    assert.equal(fakeDocument.getElementById('task-count').textContent, '1 of 5 items');
+    assert.equal(fakeDocument.getElementById('task-list').children.length, 1,
+      'Verify remains a distinct filter for disconnected native-only workflows');
   } finally {
     if (previousDocument === undefined) delete globalThis.document;
     else globalThis.document = previousDocument;

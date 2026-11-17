@@ -48,7 +48,7 @@ export function deriveWorkbench(raw, asOf) {
   if (!x.approvals.replyApprover && x.replyQueue === 'approval_required') tasks.push({id:'reply', severity:'human', title:'Confirm reply approver', detail:'Any public owner response requires explicit human authorization. No review text is present.'});
   if (report.comparison === 'COUNT_DECREASED_RECONCILE') tasks.push({id:'decline', severity:'hold', title:'Reconcile count decrease', detail:'A net decrease requires a human source check before any business interpretation.'});
   if (report.coverage !== 'CURRENT_AS_OF') tasks.push({id:'coverage', severity:'hold', title:'Restore native observation coverage', detail:'Source is unavailable, stale, held or not authorized. Missing data must never display as zero.'});
-  if (x.mgr.route === 'unverified') tasks.push({id:'route', severity:'verify', title:'Verify all five rating routes', detail:'Inspect the exact authorized project; MGR visibility is not routing proof.'});
+  if (x.mgr.route === 'unverified') tasks.push({id:'route', severity:'hold', title:'Verify all five rating routes', detail:'Do not treat unverified MGR public-review routing as ready. Inspect the exact authorized project; MGR visibility is not routing proof.'});
   if (x.mgr.route === 'rating_conditioned_hold') tasks.push({id:'route', severity:'hold', title:'Reject sentiment-conditioned routing', detail:'A public Google option cannot depend on a favorable rating.'});
   if (x.mgr.route === 'not_connected') tasks.push({id:'route', severity:'verify', title:'Keep MGR disconnected', detail:'Native work can continue after authorization; no second provider is required.'});
   const allApproved = APPROVALS.every(k => x.approvals[k]);
