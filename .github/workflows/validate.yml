@@ -83,6 +83,11 @@ jobs:
           node --check proofs/aggregate-monitor/tools/compare-manual.mjs
           node --test proofs/aggregate-monitor/test/*.test.mjs
 
+      - name: Real Chromium Workbench DOM regression (fictional / localhost only)
+        shell: bash
+        run: |
+          node proofs/ops-workbench/test/browser-smoke.mjs
+
       - name: Unified workbench proof contracts (fictional / source-only)
         shell: bash
         run: |
