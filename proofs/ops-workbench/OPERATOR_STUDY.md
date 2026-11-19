@@ -4,7 +4,7 @@
 
 ## Before starting
 
-The facilitator will open the Workbench at the local address they supply. You do not need to sign in, install software, send a message, use Google/MGR, or share any real business, patient, reviewer or contact details. **Do not enter personal information or submit any form.**
+Your facilitator will open the Workbench at a local address, **or** give you a standalone fictional-only `study-workbench.html` to double-click and open offline in a browser. You do not need to sign in, install software, send a message, use Google/MGR, or share any real business, patient, reviewer or contact details. **Do not enter personal information or submit any form.**
 
 You will see four invented businesses. Work independently without explanations or tooltips from the facilitator. For each one, inspect the evidence and decision queue, then answer the same questions **in your own words**. It is okay to answer "cannot determine" where the interface does not support a conclusion. The facilitator records time and navigation difficulties, but there is no speed-based pass/fail by itself.
 
