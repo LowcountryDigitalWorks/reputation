@@ -16,7 +16,6 @@ import {relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const repoRoot = resolve(fileURLToPath(new URL('../../../', import.meta.url)));
-const workbench = new URL('../', import.meta.url);
 const input = {
   html: new URL('../index.html', import.meta.url),
   css: new URL('../styles.css', import.meta.url),
@@ -53,11 +52,16 @@ export async function buildBlindStudy() {
   app = once(app, "import {derivePortfolio} from './workbench.mjs';",
     '', 'app model import');
   const stripExports = s => s.replace(/^export (const|function) /gm, '$1 ');
+  // Keep each original module's lexical namespace: both aggregate and Workbench
+  // declare KEYS, so naïve concatenation would change source behavior.
+  const wrap = (code, exportedNames, label) =>
+    'const {' + exportedNames.join(',') + '} = (() => {\n' +
+    noModules(stripExports(code), label) + '\nreturn {' + exportedNames.join(',') + '};\n})();';
   const js = [
     '/* G3a fictional-only offline participant copy; generated from accepted repository sources. */',
-    noModules(stripExports(files.aggregate), 'aggregate'),
-    noModules(stripExports(model), 'model'),
-    noModules(stripExports(files.fixtures), 'fixtures'),
+    wrap(files.aggregate, ['compareAggregateObservations'], 'aggregate'),
+    wrap(model, ['derivePortfolio'], 'model'),
+    wrap(files.fixtures, ['FICTIONAL_LOCATIONS', 'FIXTURE_CLOCK'], 'fixtures'),
     noModules(stripExports(app), 'app')
   ].join('\n\n');
 
