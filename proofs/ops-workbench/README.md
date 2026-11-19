@@ -25,7 +25,19 @@ Visit `http://127.0.0.1:8765/proofs/ops-workbench/` **locally**. The HTTP root m
 
 **Test:** A reviewer selects each fictional location, opens a decision, reads source provenance, toggles light/dark and uses keyboard/mobile layout. Within about a minute, can they correctly answer: *What is actually known? What is only an MGR click? Who must approve the next step? Why is a count withheld?* The design succeeds only if these distinctions are obvious **without a tooltip or documentation tour**. Record reviewer findings in owning Reputation #7; do not store real client or reviewer details in this proof.
 
-**Blind study handout:** For any cold human evaluation, give the reviewer **only** [OPERATOR_STUDY.md](OPERATOR_STUDY.md) and the running local Workbench. **Do not share this README with them**: the fictional-case table below is the facilitator answer key, and pre-exposure invalidates a cold study.
+**Blind study handout:** For any cold human evaluation, give the reviewer **only** [OPERATOR_STUDY.md](OPERATOR_STUDY.md) and the running local Workbench, **or** the two-file offline participant copy below. **Do not share this README with them**: the fictional-case table below is the facilitator answer key, and pre-exposure invalidates a cold study.
+
+### Optional offline two-file participant kit — no deployment or participant setup
+
+To let an unfamiliar participant use the **same fictional Workbench** without GitHub access, a local server, source code, sign-in, installation or external network, the *facilitator* can generate a standalone offline HTML file and the existing blind handout. Node.js is needed only by the facilitator to export; a participant simply double-clicks `study-workbench.html` in a modern supported browser and reads `OPERATOR_STUDY.md`. From the repository root, choose a **new output folder outside the repository**:
+
+```sh
+node proofs/ops-workbench/tools/export-blind-study.mjs --dir "$HOME/ldw-g3a-blind-study"
+```
+
+The exporter fails closed if source imports, CSP or external dependencies drift, and refuses to overwrite an existing kit file. It inlines the accepted CSS and module logic with cryptographic **CSP hashes**, no external requests or storage, and emits **exactly** `study-workbench.html` plus `OPERATOR_STUDY.md`. The facilitator **must not distribute** this README, source files, the whole repository or the answer key. The HTML is a portable **fictional study instrument**, not a customer preview/hosted URL/app release. Do not enter any actual account, patient, reviewer or contact details. Participant answers and any screenshots remain in approved private evidence storage, not GitHub. The export process itself is not a human test and does not satisfy NVDA, WCAG, live-service or G3b gates.
+
+The GitHub-hosted Validate job tests the generated offline HTML using **real headless Chromium via a `file://` URL**, separately from the standard localhost Workbench browser regression. Passing the offline boot test does not establish cold-human understanding, Android/iOS browser equivalence, screen-reader speech or an independent native/MGR comparator.
 
 ### Accepted source and browser evidence — not human or screen-reader acceptance
 
