@@ -88,6 +88,15 @@ jobs:
         run: |
           node proofs/ops-workbench/test/browser-smoke.mjs
 
+      - name: Offline blind participant kit boot (fictional / file URL only)
+        shell: bash
+        run: |
+          node --check proofs/ops-workbench/tools/export-blind-study.mjs
+          node --check proofs/ops-workbench/tools/check-offline-blind-study.mjs
+          node proofs/ops-workbench/tools/export-blind-study.mjs --dir "$RUNNER_TEMP/ldw-g3a-blind-kit"
+          test "$(find "$RUNNER_TEMP/ldw-g3a-blind-kit" -maxdepth 1 -type f | wc -l)" -eq 2
+          node proofs/ops-workbench/tools/check-offline-blind-study.mjs "$RUNNER_TEMP/ldw-g3a-blind-kit/study-workbench.html"
+
       - name: Unified workbench proof contracts (fictional / source-only)
         shell: bash
         run: |
