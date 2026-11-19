@@ -26,8 +26,10 @@ test('blind participant export contains only original fictional Workbench and bl
   const js = html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
   const css = html.match(/<style>([\s\S]*?)<\/style>/)?.[1];
   assert.ok(js && css);
-  assert.match(html, new RegExp("script-src 'sha256-" + sha256(js) + "'"));
-  assert.match(html, new RegExp("style-src 'sha256-" + sha256(css) + "'"));
+  assert.ok(html.includes("script-src 'sha256-" + sha256(js) + "'"),
+    'Serialized CSP must include exact inline script hash');
+  assert.ok(html.includes("style-src 'sha256-" + sha256(css) + "'"),
+    'Serialized CSP must include exact inline stylesheet hash');
   assert.doesNotMatch(js, /^\s*(import|export)\s/m);
   assert.match(js, /compareAggregateObservations/);
   assert.match(js, /derivePortfolio/);
