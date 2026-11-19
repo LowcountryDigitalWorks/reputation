@@ -97,7 +97,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   assert.equal(args[0], '--dir');
   const target = resolve(args[1]);
   const rel = relative(repoRoot, target);
-  assert.ok(rel && rel !== '.' && rel !== '..' && !rel.startsWith('..' + sep),
+  assert.ok(rel === '..' || rel.startsWith('..' + sep),
     'Output directory must be outside the source repository');
   const {html, handout} = await buildBlindStudy();
   await mkdir(target, {recursive:true});
