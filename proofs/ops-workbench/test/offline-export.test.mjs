@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
 import {buildBlindStudy} from '../tools/export-blind-study.mjs';
 
 const sha256 = text => createHash('sha256').update(text, 'utf8').digest('base64');
@@ -40,4 +41,19 @@ test('same accepted source produces identical offline export bytes', async () =>
   const b = await buildBlindStudy();
   assert.equal(a.html, b.html);
   assert.equal(a.handout, b.handout);
+});
+
+test('CRLF Windows checkout exports byte-for-byte identical hashed offline CSS/JS', async () => {
+  const lf = await buildBlindStudy();
+  // Invert the normal checkout's text files to simulate Windows core.autocrlf.
+  const win = await buildBlindStudy(async url =>
+    (await readFile(url, 'utf8')).replace(/\r?\n/g, '\r\n'));
+  assert.equal(win.html, lf.html);
+  assert.equal(win.handout, lf.handout);
+  assert.doesNotMatch(win.html, /\r/, 'Serialized HTML must use LF for CSP stability');
+  const js = win.html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
+  const css = win.html.match(/<style>([\s\S]*?)<\/style>/)?.[1];
+  assert.ok(js && css);
+  assert.ok(win.html.includes("script-src 'sha256-" + sha256(js) + "'"));
+  assert.ok(win.html.includes("style-src 'sha256-" + sha256(css) + "'"));
 });

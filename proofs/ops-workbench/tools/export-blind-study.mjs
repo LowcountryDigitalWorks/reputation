@@ -39,9 +39,14 @@ function noModules(code, label) {
 }
 const hash = source => createHash('sha256').update(source, 'utf8').digest('base64');
 
-export async function buildBlindStudy() {
+// HTML parsing normalizes CRLF/CR to LF before browser CSP hash checks.
+// Normalize disk bytes *before* hashing and inlining to support Windows Git checkouts.
+const normalizeNewlines = source => source.replace(/\r\n?/g, '\n');
+const defaultReadSource = url => readFile(url, 'utf8');
+
+export async function buildBlindStudy(readSource = defaultReadSource) {
   const files = Object.fromEntries(await Promise.all(
-    Object.entries(input).map(async ([key, url]) => [key, await readFile(url, 'utf8')])
+    Object.entries(input).map(async ([key, url]) => [key, normalizeNewlines(await readSource(url))])
   ));
   let model = once(files.model,
     "import {compareAggregateObservations} from '../../aggregate-monitor/src/aggregate-monitor.mjs';",

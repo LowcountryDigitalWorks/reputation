@@ -4,7 +4,8 @@
  * Runner: installed Chrome/Chromium only; no downloads or provider network.
  */
 import assert from 'node:assert/strict';
-import {readFile, mkdtemp, rm} from 'node:fs/promises';
+import {readFile, writeFile, mkdtemp, rm} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 import {existsSync} from 'node:fs';
 import {spawn} from 'node:child_process';
 import {tmpdir} from 'node:os';
@@ -22,6 +23,31 @@ const chrome = [process.env.CHROME_BIN, '/usr/bin/google-chrome', '/usr/bin/chro
   '/usr/bin/chromium-browser'].find(x => x && existsSync(x));
 assert.ok(chrome, 'GitHub-hosted runner must already have Chrome/Chromium');
 const profile = await mkdtemp(resolve(tmpdir(), 'ldw-study-offline-'));
+// Test-only inline computed-style observer with its own CSP hash. The participant
+// HTML is not modified; the probe copy lives only in the disposable test profile.
+const styleProbe = String.raw`
+window.addEventListener('DOMContentLoaded', () => {
+  const shell = document.querySelector('.shell');
+  const tiles = document.querySelector('.summary-grid');
+  const okay = shell && tiles &&
+    getComputedStyle(shell).display === 'grid' &&
+    getComputedStyle(tiles).display === 'grid' &&
+    getComputedStyle(document.body).marginTop === '0px';
+  const output = document.createElement('output');
+  output.id = 'ldw-offline-style-probe';
+  output.textContent = okay ? 'CSS_LAYOUT_APPLIED' : 'CSS_LAYOUT_MISSING';
+  document.body.append(output);
+});
+`;
+const policy = html.match(/script-src 'sha256-[^']+';/)?.[0];
+assert.ok(policy, 'Expected exactly one hashed inline script policy');
+assert.equal(html.split('</body>').length, 2, 'Expected one HTML body close tag');
+const probeHash = createHash('sha256').update(styleProbe, 'utf8').digest('base64');
+const probePolicy = policy.replace(';', " 'sha256-" + probeHash + "';");
+const probeHtml = html.replace(policy, probePolicy)
+  .replace('</body>', '<script>' + styleProbe + '</script></body>');
+const probePath = resolve(profile, 'test-only-offline-probe.html');
+await writeFile(probePath, probeHtml, {flag:'wx'});
 let child;
 let timeout;
 try {
@@ -29,7 +55,7 @@ try {
     '--disable-background-networking', '--no-first-run', '--no-default-browser-check',
     '--disable-dev-shm-usage', '--user-data-dir=' + profile,
     '--window-size=1280,900', '--virtual-time-budget=12000', '--dump-dom',
-    pathToFileURL(path).href];
+    pathToFileURL(probePath).href];
   child = spawn(chrome, args, {stdio:['ignore','pipe','pipe']});
   let stdout = '', stderr = '';
   child.stdout.on('data', b => {stdout += b.toString();});
@@ -50,7 +76,9 @@ try {
     'Offline fixture did not render an actual synthetic public count');
   assert.match(stdout, /No provider, customer or account can be changed here/,
     'Fictional-only authority boundary missing');
-  console.log('G3a OFFLINE participant Workbench Chromium PASS — no server, fixture UI initialized under hashed CSP');
+  assert.match(stdout, /<output id="ldw-offline-style-probe">CSS_LAYOUT_APPLIED<\/output>/,
+    'Offline Workbench CSS was not applied to the real Chromium layout');
+  console.log('G3a OFFLINE participant Workbench Chromium PASS — file:// fixture UI and CSS layout initialized under hashed CSP');
 } finally {
   if (timeout) clearTimeout(timeout);
   if (child?.exitCode === null) child.kill('SIGKILL');
