@@ -13,7 +13,9 @@ export const FICTIONAL_LOCATIONS = Object.freeze([
     previous: observation('harbor-pine', '2026-11-10T16:00:00Z', 4.58, 23),
     current: observation('harbor-pine', '2026-11-13T16:00:00Z', 4.62, 25),
     mgr: {route: 'unverified', event: 'rating_link_clicked', delivery: 'scheduled'},
-    replyQueue: 'approval_required'
+    replyQueue: 'approval_required',
+    service: {route: 'mgr_optional', completedService: false, consent: false, suppressed: false, humanApproval: false,
+      nonQualifying: {contactCardScan: true, serviceIntake: true, sentiment: true, click: true}}
   },
   {
     fixture: true, id: 'cedar-quay', name: 'Cedar Quay Bicycle Shop', kind: 'Fictional independent service',
@@ -22,7 +24,9 @@ export const FICTIONAL_LOCATIONS = Object.freeze([
     previous: observation('cedar-quay', '2026-11-10T13:00:00Z', 4.31, 12),
     current: observation('cedar-quay', '2026-11-13T15:00:00Z', 4.31, 12),
     mgr: {route: 'rating_conditioned_hold', event: 'none', delivery: 'not_requested'},
-    replyQueue: 'approval_required'
+    replyQueue: 'approval_required',
+    service: {route: 'mgr_optional', completedService: true, consent: true, suppressed: false, humanApproval: false,
+      nonQualifying: {contactCardScan: false, serviceIntake: true, sentiment: true, click: false}}
   },
   {
     fixture: true, id: 'marshlight', name: 'Marshlight Makers', kind: 'Fictional creative workshop',
@@ -31,7 +35,9 @@ export const FICTIONAL_LOCATIONS = Object.freeze([
     previous: null,
     current: observation('marshlight', '2026-10-01T11:00:00Z', 4.9, 7),
     mgr: {route: 'not_connected', event: 'none', delivery: 'not_requested'},
-    replyQueue: 'unknown'
+    replyQueue: 'unknown',
+    service: {route: 'native_only', completedService: false, consent: false, suppressed: true, humanApproval: false,
+      nonQualifying: {contactCardScan: false, serviceIntake: false, sentiment: false, click: false}}
   },
   {
     fixture: true, id: 'bayline', name: 'Bayline Bookbinding', kind: 'Fictional independent maker',
@@ -40,6 +46,8 @@ export const FICTIONAL_LOCATIONS = Object.freeze([
     previous: observation('bayline', '2026-11-09T12:00:00Z', 4.33, 8),
     current: observation('bayline', '2026-11-13T16:00:00Z', 4.44, 9),
     mgr: {route: 'neutral_verified', event: 'first_party_feedback_updated', delivery: 'delivered'},
-    replyQueue: 'none'
+    replyQueue: 'none',
+    service: {route: 'native_only', completedService: true, consent: true, suppressed: false, humanApproval: true,
+      nonQualifying: {contactCardScan: false, serviceIntake: false, sentiment: false, click: true}}
   }
 ]);

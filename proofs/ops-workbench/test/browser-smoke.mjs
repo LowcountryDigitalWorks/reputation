@@ -33,6 +33,7 @@ try {
   const location = id => document.querySelector('#locations button[data-location-id="' + id + '"]');
   const text = id => document.getElementById(id).textContent.trim();
   const titles = () => Array.from(document.querySelectorAll('#task-list .task-name'), e => e.textContent);
+  const reasons = () => Array.from(document.querySelectorAll('#readiness-list .task-name'), e => e.textContent);
   const filter = id => document.querySelector('[data-filter="' + id + '"]').click();
   const [harbor, cedar, marsh, bayline] =
     ['harbor-pine', 'cedar-quay', 'marshlight', 'bayline'].map(location);
@@ -42,17 +43,32 @@ try {
   check(text('task-count') === '3 of 4 items', 'Unverified MGR route absent from Holds');
   check(titles().includes('Verify all five rating routes'), 'Routing task missing from Holds');
   check(text('location-status') === 'HOLD', 'Unverified route incorrectly marked ready');
+  check(text('readiness-count') === 'ELIGIBILITY HOLD', 'Scan/intake/sentiment/click case incorrectly eligible');
+  check(text('readiness-route') === 'Optional MGR route', 'Optional MGR service route not shown');
+  check(text('readiness-signals').includes('Contact-card scan') && text('readiness-signals').includes('never qualify'),
+    'Never-qualify contact-card guard missing');
+  check(reasons().includes('No genuine completed service'), 'Completed-service hold reason missing');
+  check(reasons().includes('Non-qualifying signals present'), 'Non-qualifying signal reason missing');
   cedar.focus(); cedar.click();
   check(document.activeElement === cedar, 'Selection displaced keyboard focus');
   check(cedar.getAttribute('aria-pressed') === 'true', 'Selected button pressed state absent');
   check(text('location-status') === 'HOLD', 'Sentiment-conditioned route was not held');
+  check(reasons().includes('Human approval required'), 'Explicit human-approval hold reason missing');
+  check(text('readiness-basis') === 'Not established', 'Unestablished eligibility basis leaked as qualified');
   marsh.click(); filter('verify');
   check(text('task-count') === '1 of 5 items', 'Disconnected native-only Verify count wrong');
   check(titles().includes('Keep MGR disconnected'), 'Native-only state not distinguished');
   check(text('public-count') === 'Withheld', 'Stale aggregate exposed as a value');
+  check(text('readiness-route') === 'Native-only', 'Native-only service route not distinguished from MGR');
+  check(reasons().includes('Suppression active'), 'Suppression hold reason missing');
   bayline.click();
   check(text('location-status') === 'REVIEW READY', 'Fictional approved case not review-ready');
   check(text('task-count') === '0 items', 'Approved fictional case has unexpected tasks');
+  check(text('readiness-count') === 'ELIGIBLE / HUMAN ONLY', 'Genuine completed-service eligibility not shown');
+  check(text('readiness-basis').includes('Genuine completed service + consent + human approval'),
+    'Qualifying basis not shown');
+  check(text('readiness-signals').includes('Click') && text('readiness-signals').includes('never qualify'),
+    'Click never-qualify guard missing even in qualified case');
   check(text('boundary-summary').includes('No provider, customer or account can be changed here'),
     'Fictional-only no-action boundary lost');
   check(document.querySelector('.summary-card.accent .summary-value').textContent.trim() === '0',
@@ -61,7 +77,7 @@ try {
   check(document.documentElement.dataset.theme === 'light', 'Theme switch failed');
   check(document.getElementById('theme-toggle').getAttribute('aria-pressed') === 'true',
     'Theme toggle pressed state failed');
-  finish('PASS', 'Real Chromium DOM: route HOLD, native-only Verify, focus, stale count, fictional no-actions, theme');
+  finish('PASS', 'Real Chromium DOM: route HOLD, native-only Verify, service eligibility/never-qualify, focus, stale count, fictional no-actions, theme');
 } catch (error) {
   finish('FAIL', String(error?.message || error));
 }

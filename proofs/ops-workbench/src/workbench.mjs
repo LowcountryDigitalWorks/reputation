@@ -6,8 +6,18 @@ const ROUTES = new Set(['unverified', 'rating_conditioned_hold', 'not_connected'
 const EVENTS = new Set(['rating_link_clicked', 'first_party_feedback_updated', 'none']);
 const DELIVERY = new Set(['scheduled', 'not_requested', 'delivered']);
 const REPLIES = new Set(['approval_required', 'unknown', 'none']);
-const KEYS = new Set(['fixture', 'id', 'name', 'kind', 'owner', 'approvals', 'previous', 'current', 'mgr', 'replyQueue']);
+const KEYS = new Set(['fixture', 'id', 'name', 'kind', 'owner', 'approvals', 'previous', 'current', 'mgr', 'replyQueue', 'service']);
 const MGR_KEYS = new Set(['route', 'event', 'delivery']);
+const SERVICE_KEYS = new Set(['route', 'completedService', 'consent', 'suppressed', 'humanApproval', 'nonQualifying']);
+const SERVICE_ROUTES = new Set(['native_only', 'mgr_optional']);
+const NON_QUALIFYING_KEYS = ['contactCardScan', 'serviceIntake', 'sentiment', 'click'];
+const NON_QUALIFYING = new Set(NON_QUALIFYING_KEYS);
+const NON_QUALIFYING_LABELS = {
+  contactCardScan: 'Contact-card scan',
+  serviceIntake: 'Service intake',
+  sentiment: 'Sentiment',
+  click: 'Click'
+};
 const SAFE_ID = /^[a-z]+(?:-[a-z]+)*$/;
 function guard(condition, reason) {if (!condition) throw new TypeError('WORKBENCH_FIXTURE_HOLD: ' + reason);}
 function plain(o) {return o !== null && typeof o === 'object' && !Array.isArray(o) && Object.getPrototypeOf(o) === Object.prototype;}
@@ -24,6 +34,7 @@ export function validateFictionalLocation(x) {
   guard(REPLIES.has(x.replyQueue), 'human response state');
   guard(plain(x.current) && x.current.locationKey === x.id, 'native source observation scope');
   guard(x.previous === null || (plain(x.previous) && x.previous.locationKey === x.id), 'previous observation scope');
+  validateServiceReadiness(x.service);
   return x;
 }
 
@@ -38,9 +49,46 @@ const delivery = {
   not_requested: 'No review request is represented in this fictional sample.'
 };
 
+function validateServiceReadiness(s) {
+  guard(plain(s) && exactKeys(s, SERVICE_KEYS), 'service readiness shape');
+  guard(SERVICE_ROUTES.has(s.route), 'service route classification');
+  for (const key of ['completedService','consent','suppressed','humanApproval'])
+    guard(typeof s[key] === 'boolean', 'service readiness boolean state');
+  guard(plain(s.nonQualifying) && exactKeys(s.nonQualifying, NON_QUALIFYING) &&
+    NON_QUALIFYING_KEYS.every(k => typeof s.nonQualifying[k] === 'boolean'), 'non-qualifying signal flags');
+  return s;
+}
+const reason = (code, severity, title, detail) => Object.freeze({code, severity, title, detail});
+
+/** Deterministic, fictional-only service activation readiness. No action is enabled. */
+export function deriveServiceEligibility(raw) {
+  const s = validateServiceReadiness(raw);
+  const reasons = [];
+  if (!s.completedService) reasons.push(reason('no_completed_service','hold','No genuine completed service','Only a documented, genuinely completed service can support eligibility. A scan, intake form, sentiment value or click is not a completed service.'));
+  if (!s.consent) reasons.push(reason('no_consent','hold','Consent not recorded','Explicit, current fictional consent is required. Silence or contact activity is not consent.'));
+  if (s.suppressed) reasons.push(reason('suppressed','hold','Suppression active','A suppression or do-not-contact state blocks eligibility regardless of the other fictional inputs.'));
+  if (!s.humanApproval) reasons.push(reason('no_human_approval','human','Human approval required','An authorized human must approve the fictional readiness decision. No automated qualification is performed.'));
+  const nonQualifying = NON_QUALIFYING_KEYS.filter(k => s.nonQualifying[k]);
+  if (nonQualifying.length) reasons.push(reason('non_qualifying_only','verify','Non-qualifying signals present','Observed only: ' + nonQualifying.map(k => NON_QUALIFYING_LABELS[k]).join(', ') + '. None establishes eligibility, consent, suppression state or a completed service.'));
+  const ready = s.completedService && s.consent && !s.suppressed && s.humanApproval;
+  return Object.freeze({
+    route:s.route,
+    routeLabel:s.route === 'native_only' ? 'Native-only' : 'Optional MGR route',
+    ready,
+    state:ready ? 'ELIGIBLE_FOR_HUMAN_REVIEW' : 'ELIGIBILITY_HOLD',
+    basis:ready ? 'Genuine completed service + consent + human approval' : 'Not established',
+    reasons:Object.freeze(reasons),
+    nonQualifying:Object.freeze(nonQualifying),
+    nonQualifyingLabels:Object.freeze(nonQualifying.map(k => NON_QUALIFYING_LABELS[k])),
+    completedService:s.completedService, consent:s.consent, suppressed:s.suppressed, humanApproval:s.humanApproval,
+    customerDeliveryAuthorized:false
+  });
+}
+
 export function deriveWorkbench(raw, asOf) {
   const x = validateFictionalLocation(raw);
   const report = compareAggregateObservations(x.previous, x.current, {asOf, maxAgeHours: 336});
+  const serviceEligibility = deriveServiceEligibility(x.service);
   const tasks = [];
   if (!x.approvals.service) tasks.push({id:'service', severity:'hold', title:'Accept service scope', detail:'Client Operations must approve scope before any real monitoring starts.'});
   if (!x.approvals.operator) tasks.push({id:'operator', severity:'hold', title:'Assign human operator', detail:'A named, authorized operator must own native queue checks.'});
@@ -56,7 +104,7 @@ export function deriveWorkbench(raw, asOf) {
   return Object.freeze({
     id:x.id, name:x.name, kind:x.kind, owner:x.owner, status:blocking?'HOLD':allApproved?'REVIEW READY':'HUMAN REVIEW',
     summary: allApproved && !blocking ? 'Fictional workflow has approval inputs; production is still disabled.' : 'No service activation or customer delivery is authorized by this proof.',
-    tasks:Object.freeze(tasks.map(t=>Object.freeze(t))), report,
+    tasks:Object.freeze(tasks.map(t=>Object.freeze(t))), report, serviceEligibility,
     publicEvidence:report.coverage === 'CURRENT_AS_OF' ? 'Fictional manual native observation' : 'Not current / withheld',
     mgrEvidence:explanation[x.mgr.event], messageEvidence:delivery[x.mgr.delivery],
     mgrRoute:x.mgr.route, replyQueue:x.replyQueue,

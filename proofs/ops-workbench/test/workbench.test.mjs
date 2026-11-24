@@ -72,3 +72,59 @@ test('count decrease is a hold requiring human reconciliation',()=>{
   assert.equal(x.report.comparison,'COUNT_DECREASED_RECONCILE');
   assert.ok(x.tasks.some(t=>t.id==='decline'&&t.severity==='hold'));
 });
+
+// ---- G3a+ deterministic fictional service readiness/eligibility ----
+const readyFixture = FICTIONAL_LOCATIONS[3];
+test('service readiness requires genuine completed service, consent and human approval',()=>{
+  const ready=model(readyFixture);
+  assert.equal(ready.serviceEligibility.ready,true);
+  assert.equal(ready.serviceEligibility.state,'ELIGIBLE_FOR_HUMAN_REVIEW');
+  assert.equal(ready.serviceEligibility.customerDeliveryAuthorized,false);
+  for(const [field,code] of [['completedService','no_completed_service'],['consent','no_consent'],['humanApproval','no_human_approval']]){
+    const bad=model({...readyFixture,service:{...readyFixture.service,[field]:false}});
+    assert.equal(bad.serviceEligibility.ready,false,field+' must block eligibility');
+    assert.ok(bad.serviceEligibility.reasons.some(r=>r.code===code),code+' reason missing');
+  }
+});
+test('suppression blocks eligibility even with completed service and consent',()=>{
+  const suppressed=model({...readyFixture,service:{...readyFixture.service,suppressed:true}});
+  assert.equal(suppressed.serviceEligibility.ready,false);
+  assert.ok(suppressed.serviceEligibility.reasons.some(r=>r.code==='suppressed'));
+  assert.equal(suppressed.customerDeliveryAuthorized,false);
+});
+test('contact-card scan, intake, sentiment and click never qualify by themselves',()=>{
+  const x=model(harbor);
+  assert.equal(x.serviceEligibility.ready,false);
+  assert.deepEqual(x.serviceEligibility.nonQualifying,['contactCardScan','serviceIntake','sentiment','click']);
+  assert.deepEqual(x.serviceEligibility.nonQualifyingLabels,['Contact-card scan','Service intake','Sentiment','Click']);
+  assert.ok(x.serviceEligibility.reasons.some(r=>r.code==='non_qualifying_only'));
+  // A click may coexist with a genuinely qualified case, but never grants delivery.
+  const withClick=model(readyFixture);
+  assert.ok(withClick.serviceEligibility.nonQualifying.includes('click'));
+  assert.equal(withClick.serviceEligibility.ready,true);
+  assert.equal(withClick.customerDeliveryAuthorized,false);
+  assert.equal(withClick.serviceEligibility.customerDeliveryAuthorized,false);
+});
+test('native-only and optional MGR service routes are distinguished',()=>{
+  assert.equal(model(harbor).serviceEligibility.routeLabel,'Optional MGR route');
+  const native=model(marsh);
+  assert.equal(native.serviceEligibility.routeLabel,'Native-only');
+  assert.equal(native.serviceEligibility.ready,false);
+  assert.ok(native.serviceEligibility.reasons.some(r=>r.code==='suppressed'));
+  assert.ok(native.serviceEligibility.reasons.some(r=>r.code==='no_completed_service'));
+});
+test('service readiness input shape fails closed',()=>{
+  assert.throws(()=>validateFictionalLocation({...harbor,service:{...harbor.service,route:'mgr_verified'}}),/service route classification/);
+  assert.throws(()=>validateFictionalLocation({...harbor,service:{...harbor.service,leadEmail:'fiction@example.com'}}),/service readiness shape/);
+  assert.throws(()=>validateFictionalLocation({...harbor,service:{...harbor.service,nonQualifying:{...harbor.service.nonQualifying,cardScan:true}}}),/non-qualifying signal flags/);
+  assert.throws(()=>validateFictionalLocation({...harbor,service:undefined}),/service readiness shape/);
+});
+test('portfolio exposes deterministic eligibility and no live authorization',()=>{
+  const x=derivePortfolio(FICTIONAL_LOCATIONS,FIXTURE_CLOCK);
+  assert.deepEqual(x.rows.map(r=>r.serviceEligibility.state),
+    ['ELIGIBILITY_HOLD','ELIGIBILITY_HOLD','ELIGIBILITY_HOLD','ELIGIBLE_FOR_HUMAN_REVIEW']);
+  for(const r of x.rows){
+    assert.equal(r.customerDeliveryAuthorized,false);
+    assert.equal(r.serviceEligibility.customerDeliveryAuthorized,false);
+  }
+});

@@ -40,6 +40,21 @@ function renderTasks(row){
   details.append(summary,elem('p','task-description',t.detail));mount.append(details);
  }
 }
+function renderReadiness(row){
+ const s=row.serviceEligibility;
+ const mount=$('readiness-list');mount.replaceChildren();
+ set('readiness-count',s.ready?'ELIGIBLE / HUMAN ONLY':'ELIGIBILITY HOLD');
+ set('readiness-route',s.routeLabel);
+ set('readiness-basis',s.basis);
+ set('readiness-signals',s.nonQualifyingLabels.length?s.nonQualifyingLabels.join(' · ')+' — never qualify':'None present');
+ for(const r of s.reasons){
+  const details=elem('details','task');const summary=elem('summary','task-heading');
+  summary.append(elem('span','task-indicator '+r.severity,r.severity==='hold'?'!':r.severity==='human'?'◉':'?'));
+  summary.append(elem('span','task-name',r.title),elem('span','task-arrow','⌄'));
+  details.append(summary,elem('p','task-description',r.detail));mount.append(details);
+ }
+ if(!s.reasons.length) mount.append(elem('p','empty-state','No blocking reason in this fictional scenario. Customer delivery remains disabled.'));
+}
 function evidenceRow(icon,title,value,description,tone){
  const item=elem('article','source-row'); const sym=elem('span','source-icon '+tone,icon);sym.setAttribute('aria-hidden','true');
  const t=elem('div','source-text');t.append(elem('strong','',title),elem('p','',description));item.append(sym,t,elem('span','source-value',value));return item;
@@ -61,7 +76,7 @@ function render(){
  set('rating-sub',row.report.coverage==='CURRENT_AS_OF'?'Fictional displayed average':'Coverage hold: '+row.report.coverage);
  set('mgr-status',row.mgrRoute==='rating_conditioned_hold'?'Route policy hold':row.mgrRoute==='unverified'?'Routing unverified':row.mgrRoute==='not_connected'?'Not connected':'Synthetic route pass');
  set('boundary-summary',row.summary+' Everything shown is fictional. No provider, customer or account can be changed here.');
- renderTasks(row);renderEvidence(row);renderLocations();
+ renderTasks(row);renderReadiness(row);renderEvidence(row);renderLocations();
 }
 function syncFilter(){for(const b of document.querySelectorAll('[data-filter]')){let active=b.dataset.filter===filter;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',String(active));}}
 set('fixture-clock','FIXTURE • '+fmtUtc(FIXTURE_CLOCK));set('workspaces-count',portfolio.rows.length);set('hold-count',portfolio.holds);set('decision-count',portfolio.pending);
