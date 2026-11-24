@@ -10,6 +10,8 @@ const KEYS = new Set(['fixture', 'id', 'name', 'kind', 'owner', 'approvals', 'pr
 const MGR_KEYS = new Set(['route', 'event', 'delivery']);
 const SERVICE_KEYS = new Set(['route', 'completedService', 'consent', 'suppressed', 'humanApproval', 'nonQualifying']);
 const SERVICE_ROUTES = new Set(['native_only', 'mgr_optional']);
+const TASK_KEYS = new Set(['id', 'severity', 'title', 'detail']);
+const CONTEXT_KEYS = new Set(['assessed', 'blockingTasks', 'mgrRoute']);
 const NON_QUALIFYING_KEYS = ['contactCardScan', 'serviceIntake', 'sentiment', 'click'];
 const NON_QUALIFYING = new Set(NON_QUALIFYING_KEYS);
 const NON_QUALIFYING_LABELS = {
@@ -66,11 +68,27 @@ function validateServiceReadiness(s) {
 const reason = (code, severity, title, detail) => Object.freeze({code, severity, title, detail});
 
 /**
+ * A service-only call cannot assess operational holds. Accept only a complete,
+ * internally derived context; otherwise fail closed rather than inferring
+ * clearance from missing data. Never throws for a malformed context.
+ */
+function assessedOperations(context) {
+  if (!plain(context) || !exactKeys(context, CONTEXT_KEYS) || context.assessed !== true ||
+      !ROUTES.has(context.mgrRoute) || !Array.isArray(context.blockingTasks)) return false;
+  return context.blockingTasks.every(t => plain(t) && exactKeys(t, TASK_KEYS) &&
+    typeof t.id === 'string' && t.id.length > 0 && t.severity === 'hold' &&
+    typeof t.title === 'string' && t.title.length > 0 &&
+    typeof t.detail === 'string' && t.detail.length > 0);
+}
+
+/**
  * Deterministic, fictional-only service readiness. No action is enabled.
  * Evidence eligibility (event facts) and operational clearance (location,
  * route-policy, coverage and approval holds) are reported separately; a
  * location-level hold always overrides otherwise satisfied event flags.
- * `context.blockingTasks` is the location's already-derived hold task list.
+ * An optional MGR route also requires MGR to be connected. An unassessed or
+ * malformed context never clears. Public reply approval stays an independent
+ * human task and is not an operational hold.
  */
 export function deriveServiceEligibility(raw, context = null) {
   const s = validateServiceReadiness(raw);
@@ -82,20 +100,30 @@ export function deriveServiceEligibility(raw, context = null) {
   const nonQualifying = NON_QUALIFYING_KEYS.filter(k => s.nonQualifying[k]);
   if (nonQualifying.length) reasons.push(reason('non_qualifying_only','verify','Non-qualifying signals present','Observed only: ' + nonQualifying.map(k => NON_QUALIFYING_LABELS[k]).join(', ') + '. None establishes eligibility, consent, suppression state or a completed service.'));
   const evidenceEligible = s.completedService && s.consent && !s.suppressed && s.humanApproval;
-  const blockers = context && Array.isArray(context.blockingTasks)
-    ? context.blockingTasks.map(t => reason('op_' + t.id, 'hold', t.title, t.detail))
-    : [];
+  const assessed = assessedOperations(context);
+  const blockers = [];
+  if (!assessed) {
+    blockers.push(reason('unassessed_operations','hold','Operations not assessed',
+      'Operational holds and route availability were not supplied. This fictional case stays on hold until they are assessed.'));
+  } else {
+    for (const t of context.blockingTasks) blockers.push(reason('op_' + t.id, 'hold', t.title, t.detail));
+    if (s.route === 'mgr_optional' && context.mgrRoute === 'not_connected' &&
+        !blockers.some(b => b.code === 'op_route_availability')) {
+      blockers.push(reason('op_route_availability','hold','MGR route not available',
+        'This fictional case selects an optional MGR route, but MGR is not connected. Use a connected, verified MGR route or switch to native-only; no customer action is enabled.'));
+    }
+  }
   for (const blocker of blockers) reasons.push(blocker);
-  const operationalCleared = blockers.length === 0;
+  const operationalCleared = assessed && blockers.length === 0;
   const ready = evidenceEligible && operationalCleared;
   return Object.freeze({
     route:s.route,
     routeLabel:s.route === 'native_only' ? 'Native-only' : 'Optional MGR route',
-    evidenceEligible, operationalCleared, ready,
-    state:ready ? 'ELIGIBLE_FOR_HUMAN_REVIEW' : evidenceEligible ? 'OPERATIONAL_HOLD' : 'EVIDENCE_HOLD',
-    display:ready ? 'ELIGIBLE / HUMAN ONLY' : evidenceEligible ? 'OPERATIONAL HOLD' : 'ELIGIBILITY HOLD',
+    assessed, evidenceEligible, operationalCleared, ready,
+    state:!assessed ? 'OPERATIONS_NOT_ASSESSED' : ready ? 'ELIGIBLE_FOR_HUMAN_REVIEW' : evidenceEligible ? 'OPERATIONAL_HOLD' : 'EVIDENCE_HOLD',
+    display:!assessed ? 'OPERATIONS NOT ASSESSED' : ready ? 'ELIGIBLE / HUMAN ONLY' : evidenceEligible ? 'OPERATIONAL HOLD' : 'ELIGIBILITY HOLD',
     basis:evidenceEligible ? 'Genuine completed service + consent + human approval' : 'Not established',
-    clearance:operationalCleared ? 'Operations clear' : 'Operations hold',
+    clearance:!assessed ? 'Operations not assessed' : operationalCleared ? 'Operations clear' : 'Operations hold',
     blockers:Object.freeze(blockers.map(b => b.code)),
     reasons:Object.freeze(reasons),
     nonQualifying:Object.freeze(nonQualifying),
@@ -117,11 +145,15 @@ export function deriveWorkbench(raw, asOf) {
   if (report.coverage !== 'CURRENT_AS_OF') tasks.push({id:'coverage', severity:'hold', title:'Restore native observation coverage', detail:'Source is unavailable, stale, held or not authorized. Missing data must never display as zero.'});
   if (x.mgr.route === 'unverified') tasks.push({id:'route', severity:'hold', title:'Verify all five rating routes', detail:'Do not treat unverified MGR public-review routing as ready. Inspect the exact authorized project; MGR visibility is not routing proof.'});
   if (x.mgr.route === 'rating_conditioned_hold') tasks.push({id:'route', severity:'hold', title:'Reject sentiment-conditioned routing', detail:'A public Google option cannot depend on a favorable rating.'});
-  if (x.mgr.route === 'not_connected') tasks.push({id:'route', severity:'verify', title:'Keep MGR disconnected', detail:'Native work can continue after authorization; no second provider is required.'});
+  if (x.mgr.route === 'not_connected' && x.service.route === 'mgr_optional')
+    tasks.push({id:'route_availability', severity:'hold', title:'MGR route not available', detail:'This fictional case selects an optional MGR route, but MGR is not connected. Use a connected, verified MGR route or switch to native-only; no customer action is enabled.'});
+  else if (x.mgr.route === 'not_connected')
+    tasks.push({id:'route', severity:'verify', title:'Keep MGR disconnected', detail:'Native work can continue after authorization; no second provider is required.'});
   const allApproved = APPROVALS.every(k => x.approvals[k]);
   const blockingTasks = tasks.filter(t => t.severity === 'hold');
   const blocking = blockingTasks.length > 0;
-  const serviceEligibility = deriveServiceEligibility(x.service, {blockingTasks});
+  const serviceEligibility = deriveServiceEligibility(x.service,
+    {assessed:true, blockingTasks, mgrRoute:x.mgr.route});
   return Object.freeze({
     id:x.id, name:x.name, kind:x.kind, owner:x.owner, status:blocking?'HOLD':allApproved?'REVIEW READY':'HUMAN REVIEW',
     summary: allApproved && !blocking ? 'Fictional workflow has approval inputs; production is still disabled.' : 'No service activation or customer delivery is authorized by this proof.',

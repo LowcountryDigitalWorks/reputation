@@ -23,10 +23,11 @@ export const FICTIONAL_LOCATIONS = Object.freeze([
     approvals: {service: true, operator: true, cadence: true, replyApprover: false},
     previous: observation('cedar-quay', '2026-11-10T13:00:00Z', 4.31, 12),
     current: observation('cedar-quay', '2026-11-13T15:00:00Z', 4.31, 12),
-    mgr: {route: 'rating_conditioned_hold', event: 'none', delivery: 'not_requested'},
+    mgr: {route: 'not_connected', event: 'none', delivery: 'not_requested'},
     replyQueue: 'approval_required',
-    // All event flags satisfied, but the rating-conditioned MGR route and an
-    // unapproved reply path still block operational clearance.
+    // All event and approval facts are satisfied, but an optional MGR route
+    // cannot clear while MGR is disconnected. The reply approver remains a
+    // separate independent human task, not an operational hold.
     service: {route: 'mgr_optional', completedService: true, consent: true, suppressed: false, humanApproval: true,
       nonQualifying: {contactCardScan: false, serviceIntake: true, sentiment: true, click: false}}
   },

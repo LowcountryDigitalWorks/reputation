@@ -23,7 +23,8 @@ test('MGR click and scheduled message never imply public review or delivery',()=
   assert.ok(x.tasks.some(t=>t.id==='route'));assert.equal(x.actionsEnabled,false);
 });
 test('rating-conditional path forces hold even if service inputs are satisfied',()=>{
-  const x=model(cedar);assert.equal(x.status,'HOLD');assert.ok(x.tasks.some(t=>t.title.includes('sentiment-conditioned')));
+  const x=model({...cedar,mgr:{route:'rating_conditioned_hold',event:'none',delivery:'not_requested'}});
+  assert.equal(x.status,'HOLD');assert.ok(x.tasks.some(t=>t.title.includes('sentiment-conditioned')));
 });
 test('stale source never leaks aggregate numbers or timestamps into report',()=>{
   const x=model(marsh);assert.equal(x.report.coverage,'STALE');assert.equal(x.report.reviewCount.current,null);
@@ -48,7 +49,8 @@ test('unverified MGR route is a HOLD even when all fictional approvals are prese
 
   // Deliberately disconnected MGR is different: authorized native-only work
   // can be reviewed without asserting that an unverified MGR funnel is safe.
-  const nativeOnly=model({...harbor,approvals,mgr:{route:'not_connected',event:'none',delivery:'not_requested'}});
+  const nativeOnly=model({...harbor,approvals,service:{...harbor.service,route:'native_only'},
+    mgr:{route:'not_connected',event:'none',delivery:'not_requested'}});
   assert.equal(nativeOnly.status,'REVIEW READY');
   assert.ok(nativeOnly.tasks.some(t=>t.id==='route'&&t.severity==='verify'));
   assert.equal(nativeOnly.actionsEnabled,false);
@@ -190,11 +192,86 @@ test('disconnected native-only and satisfied optional MGR paths can clear',()=>{
 });
 test('explicit blocking context overrides event-only derivation',()=>{
   const e=deriveServiceEligibility(readyFixture.service,
-    {blockingTasks:[{id:'route',severity:'hold',title:'Verify all five rating routes',detail:'policy hold'}]});
+    {assessed:true, mgrRoute:'neutral_verified',
+      blockingTasks:[{id:'route',severity:'hold',title:'Verify all five rating routes',detail:'policy hold'}]});
+  assert.equal(e.assessed,true);
   assert.equal(e.evidenceEligible,true);
   assert.equal(e.operationalCleared,false);
   assert.equal(e.ready,false);
   assert.deepEqual(e.blockers,['op_route']);
+});
+test('optional MGR route cannot clear while MGR is disconnected',()=>{
+  const x=model(cedar);
+  const e=x.serviceEligibility;
+  assert.equal(x.status,'HOLD');
+  assert.equal(e.evidenceEligible,true);
+  assert.equal(e.operationalCleared,false);
+  assert.equal(e.ready,false);
+  assert.equal(e.display,'OPERATIONAL HOLD');
+  assert.ok(x.tasks.some(t=>t.id==='route_availability'&&t.severity==='hold'));
+  assert.ok(e.blockers.includes('op_route_availability'));
+  assert.ok(e.reasons.some(r=>r.title==='MGR route not available'));
+  assert.equal(e.customerDeliveryAuthorized,false);
+});
+test('service and MGR route matrix is fail-closed with native and verified controls',()=>{
+  const expected={
+    'native_only:unverified':false,
+    'native_only:rating_conditioned_hold':false,
+    'native_only:not_connected':true,
+    'native_only:neutral_verified':true,
+    'mgr_optional:unverified':false,
+    'mgr_optional:rating_conditioned_hold':false,
+    'mgr_optional:not_connected':false,
+    'mgr_optional:neutral_verified':true
+  };
+  for(const [key,clears] of Object.entries(expected)){
+    const [serviceRoute,mgrRoute]=key.split(':');
+    const x=model({...readyFixture,
+      service:{...readyFixture.service,route:serviceRoute},
+      mgr:{route:mgrRoute,event:'none',delivery:'not_requested'}});
+    const e=x.serviceEligibility;
+    assert.equal(e.evidenceEligible,true,key+' should satisfy all event facts');
+    assert.equal(e.operationalCleared,clears,key+' clearance mismatch');
+    assert.equal(e.ready,clears,key+' readiness mismatch');
+    assert.equal(x.status,clears?'REVIEW READY':'HOLD',key+' status mismatch');
+    if(mgrRoute==='not_connected'&&serviceRoute==='mgr_optional')
+      assert.ok(e.blockers.includes('op_route_availability'),key+' route availability hold missing');
+    if(mgrRoute==='unverified'||mgrRoute==='rating_conditioned_hold')
+      assert.ok(e.blockers.includes('op_route'),key+' unsafe MGR policy hold missing');
+    assert.equal(e.customerDeliveryAuthorized,false,key+' must never authorize delivery');
+  }
+});
+test('unassessed or malformed operations context fails closed',()=>{
+  const bad=[undefined,null,{},{assessed:false,blockingTasks:[],mgrRoute:'neutral_verified'},
+    {assessed:true,blockingTasks:'none',mgrRoute:'neutral_verified'},
+    {assessed:true,blockingTasks:[{}],mgrRoute:'neutral_verified'},
+    {assessed:true,blockingTasks:[],mgrRoute:'mgr_verified'},
+    {assessed:true,blockingTasks:[],mgrRoute:'neutral_verified',extra:true}];
+  for(const context of bad){
+    const e=deriveServiceEligibility(readyFixture.service,context);
+    assert.equal(e.assessed,false);
+    assert.equal(e.evidenceEligible,true);
+    assert.equal(e.operationalCleared,false);
+    assert.equal(e.ready,false);
+    assert.equal(e.state,'OPERATIONS_NOT_ASSESSED');
+    assert.equal(e.display,'OPERATIONS NOT ASSESSED');
+    assert.equal(e.clearance,'Operations not assessed');
+    assert.deepEqual(e.blockers,['unassessed_operations']);
+    assert.ok(e.reasons.some(r=>r.code==='unassessed_operations'));
+    assert.equal(e.customerDeliveryAuthorized,false);
+  }
+});
+test('unrelated public reply approval stays an independent human task',()=>{
+  const x=model({...readyFixture,replyQueue:'approval_required',
+    approvals:{...readyFixture.approvals,replyApprover:false}});
+  const e=x.serviceEligibility;
+  assert.equal(e.evidenceEligible,true);
+  assert.equal(e.operationalCleared,true);
+  assert.equal(e.ready,true);
+  assert.equal(e.display,'ELIGIBLE / HUMAN ONLY');
+  assert.ok(x.tasks.some(t=>t.id==='reply'&&t.severity==='human'));
+  assert.ok(!e.blockers.some(b=>b==='op_reply'));
+  assert.equal(e.customerDeliveryAuthorized,false);
 });
 test('non-string kind is held with a controlled fixture message',()=>{
   assert.throws(()=>validateFictionalLocation({...harbor,kind:42}),

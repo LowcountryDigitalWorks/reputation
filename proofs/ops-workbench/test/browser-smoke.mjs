@@ -57,9 +57,10 @@ try {
   cedar.focus(); cedar.click();
   check(document.activeElement === cedar, 'Selection displaced keyboard focus');
   check(cedar.getAttribute('aria-pressed') === 'true', 'Selected button pressed state absent');
-  check(text('location-status') === 'HOLD', 'Sentiment-conditioned route was not held');
-  check(text('readiness-count') === 'OPERATIONAL HOLD', 'Satisfied service flags wrongly cleared a held route');
-  check(reasons().includes('Reject sentiment-conditioned routing'), 'Unsafe MGR route blocker missing');
+  check(text('location-status') === 'HOLD', 'Optional MGR route without MGR connection was not held');
+  check(text('readiness-count') === 'OPERATIONAL HOLD', 'Satisfied service flags wrongly cleared an unavailable MGR route');
+  check(titles().includes('MGR route not available'), 'Route-availability hold missing from decision list');
+  check(reasons().includes('MGR route not available'), 'Route-availability blocker missing from readiness reasons');
   check(text('readiness-basis').includes('Genuine completed service + consent + human approval') &&
     text('readiness-basis').includes('Operations hold'), 'Evidence eligibility not distinguished from operational hold');
   marsh.click(); filter('verify');
@@ -84,7 +85,7 @@ try {
   check(document.documentElement.dataset.theme === 'light', 'Theme switch failed');
   check(document.getElementById('theme-toggle').getAttribute('aria-pressed') === 'true',
     'Theme toggle pressed state failed');
-  finish('PASS', 'Real Chromium DOM: route HOLD, native-only Verify, service eligibility/never-qualify, focus, stale count, fictional no-actions, theme');
+  finish('PASS', 'Real Chromium DOM: route HOLD, MGR route-availability hold, native-only Verify, service eligibility/never-qualify, focus, stale count, fictional no-actions, theme');
 } catch (error) {
   finish('FAIL', String(error?.message || error));
 }
