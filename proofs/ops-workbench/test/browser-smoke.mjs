@@ -39,6 +39,11 @@ try {
     ['harbor-pine', 'cedar-quay', 'marshlight', 'bayline'].map(location);
   check([harbor,cedar,marsh,bayline].every(Boolean), 'Four fictional locations missing');
   check(harbor.getAttribute('aria-pressed') === 'true', 'Initial location selection incorrect');
+  const statusEl = document.getElementById('readiness-count');
+  check(statusEl.getAttribute('aria-live') === 'polite' && statusEl.getAttribute('aria-atomic') === 'true',
+    'Readiness status must be one polite atomic live region');
+  check(document.getElementById('readiness-list').getAttribute('aria-live') === 'off',
+    'Reason list must not duplicate readiness announcements');
   filter('hold');
   check(text('task-count') === '3 of 4 items', 'Unverified MGR route absent from Holds');
   check(titles().includes('Verify all five rating routes'), 'Routing task missing from Holds');
@@ -53,8 +58,10 @@ try {
   check(document.activeElement === cedar, 'Selection displaced keyboard focus');
   check(cedar.getAttribute('aria-pressed') === 'true', 'Selected button pressed state absent');
   check(text('location-status') === 'HOLD', 'Sentiment-conditioned route was not held');
-  check(reasons().includes('Human approval required'), 'Explicit human-approval hold reason missing');
-  check(text('readiness-basis') === 'Not established', 'Unestablished eligibility basis leaked as qualified');
+  check(text('readiness-count') === 'OPERATIONAL HOLD', 'Satisfied service flags wrongly cleared a held route');
+  check(reasons().includes('Reject sentiment-conditioned routing'), 'Unsafe MGR route blocker missing');
+  check(text('readiness-basis').includes('Genuine completed service + consent + human approval') &&
+    text('readiness-basis').includes('Operations hold'), 'Evidence eligibility not distinguished from operational hold');
   marsh.click(); filter('verify');
   check(text('task-count') === '1 of 5 items', 'Disconnected native-only Verify count wrong');
   check(titles().includes('Keep MGR disconnected'), 'Native-only state not distinguished');

@@ -25,7 +25,9 @@ export const FICTIONAL_LOCATIONS = Object.freeze([
     current: observation('cedar-quay', '2026-11-13T15:00:00Z', 4.31, 12),
     mgr: {route: 'rating_conditioned_hold', event: 'none', delivery: 'not_requested'},
     replyQueue: 'approval_required',
-    service: {route: 'mgr_optional', completedService: true, consent: true, suppressed: false, humanApproval: false,
+    // All event flags satisfied, but the rating-conditioned MGR route and an
+    // unapproved reply path still block operational clearance.
+    service: {route: 'mgr_optional', completedService: true, consent: true, suppressed: false, humanApproval: true,
       nonQualifying: {contactCardScan: false, serviceIntake: true, sentiment: true, click: false}}
   },
   {

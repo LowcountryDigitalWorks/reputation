@@ -7,6 +7,8 @@ let filter = 'all';
 const root = document.documentElement;
 const $ = id=>document.getElementById(id);
 const set = (id, value)=>{$(id).textContent=String(value);};
+// Only write the readiness status when it changes: one polite announcement per real state change.
+const setLive = (id, value)=>{const el=$(id);const v=String(value);if(el.textContent!==v)el.textContent=v;};
 const elem=(tag,className,text)=>{const x=document.createElement(tag);if(className)x.className=className;if(text!==undefined)x.textContent=text;return x;};
 const fmtUtc = t => t ? new Date(t).toLocaleString('en-US',{timeZone:'UTC',year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' UTC' : 'Withheld';
 const statusClass=s=>s==='HOLD'?'hold':s==='REVIEW READY'?'ready':'human';
@@ -43,9 +45,9 @@ function renderTasks(row){
 function renderReadiness(row){
  const s=row.serviceEligibility;
  const mount=$('readiness-list');mount.replaceChildren();
- set('readiness-count',s.ready?'ELIGIBLE / HUMAN ONLY':'ELIGIBILITY HOLD');
+ setLive('readiness-count',s.display);
  set('readiness-route',s.routeLabel);
- set('readiness-basis',s.basis);
+ set('readiness-basis',s.basis+' · '+s.clearance);
  set('readiness-signals',s.nonQualifyingLabels.length?s.nonQualifyingLabels.join(' · ')+' — never qualify':'None present');
  for(const r of s.reasons){
   const details=elem('details','task');const summary=elem('summary','task-heading');

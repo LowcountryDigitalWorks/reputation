@@ -27,6 +27,7 @@ export function validateFictionalLocation(x) {
   guard(plain(x) && exactKeys(x, KEYS), 'strict location shape');
   guard(x.fixture === true, 'explicit fictional fixture marker');
   guard(SAFE_ID.test(x.id) && x.id.length <= 40, 'opaque location key');
+  guard(typeof x.kind === 'string' && typeof x.owner === 'string', 'fictional subject labeling');
   guard(x.kind.startsWith('Fictional ') && /fictional/i.test(x.owner), 'fictional subject labeling');
   for (const key of ['name','kind','owner']) guard(typeof x[key] === 'string' && x[key].length > 0 && x[key].length < 90 && !/[<>@]/.test(x[key]), 'fictional presentation text');
   guard(plain(x.approvals) && exactKeys(x.approvals, new Set(APPROVALS)) && APPROVALS.every(k => typeof x.approvals[k] === 'boolean'), 'approval state');
@@ -35,6 +36,10 @@ export function validateFictionalLocation(x) {
   guard(plain(x.current) && x.current.locationKey === x.id, 'native source observation scope');
   guard(x.previous === null || (plain(x.previous) && x.previous.locationKey === x.id), 'previous observation scope');
   validateServiceReadiness(x.service);
+  // An actual rating-link click must be represented as a non-qualifying click.
+  // Clicks observed in other scenarios may be recorded independently.
+  if (x.mgr.event === 'rating_link_clicked')
+    guard(x.service.nonQualifying.click === true, 'rating click requires non-qualifying click flag');
   return x;
 }
 
@@ -60,8 +65,14 @@ function validateServiceReadiness(s) {
 }
 const reason = (code, severity, title, detail) => Object.freeze({code, severity, title, detail});
 
-/** Deterministic, fictional-only service activation readiness. No action is enabled. */
-export function deriveServiceEligibility(raw) {
+/**
+ * Deterministic, fictional-only service readiness. No action is enabled.
+ * Evidence eligibility (event facts) and operational clearance (location,
+ * route-policy, coverage and approval holds) are reported separately; a
+ * location-level hold always overrides otherwise satisfied event flags.
+ * `context.blockingTasks` is the location's already-derived hold task list.
+ */
+export function deriveServiceEligibility(raw, context = null) {
   const s = validateServiceReadiness(raw);
   const reasons = [];
   if (!s.completedService) reasons.push(reason('no_completed_service','hold','No genuine completed service','Only a documented, genuinely completed service can support eligibility. A scan, intake form, sentiment value or click is not a completed service.'));
@@ -70,13 +81,22 @@ export function deriveServiceEligibility(raw) {
   if (!s.humanApproval) reasons.push(reason('no_human_approval','human','Human approval required','An authorized human must approve the fictional readiness decision. No automated qualification is performed.'));
   const nonQualifying = NON_QUALIFYING_KEYS.filter(k => s.nonQualifying[k]);
   if (nonQualifying.length) reasons.push(reason('non_qualifying_only','verify','Non-qualifying signals present','Observed only: ' + nonQualifying.map(k => NON_QUALIFYING_LABELS[k]).join(', ') + '. None establishes eligibility, consent, suppression state or a completed service.'));
-  const ready = s.completedService && s.consent && !s.suppressed && s.humanApproval;
+  const evidenceEligible = s.completedService && s.consent && !s.suppressed && s.humanApproval;
+  const blockers = context && Array.isArray(context.blockingTasks)
+    ? context.blockingTasks.map(t => reason('op_' + t.id, 'hold', t.title, t.detail))
+    : [];
+  for (const blocker of blockers) reasons.push(blocker);
+  const operationalCleared = blockers.length === 0;
+  const ready = evidenceEligible && operationalCleared;
   return Object.freeze({
     route:s.route,
     routeLabel:s.route === 'native_only' ? 'Native-only' : 'Optional MGR route',
-    ready,
-    state:ready ? 'ELIGIBLE_FOR_HUMAN_REVIEW' : 'ELIGIBILITY_HOLD',
-    basis:ready ? 'Genuine completed service + consent + human approval' : 'Not established',
+    evidenceEligible, operationalCleared, ready,
+    state:ready ? 'ELIGIBLE_FOR_HUMAN_REVIEW' : evidenceEligible ? 'OPERATIONAL_HOLD' : 'EVIDENCE_HOLD',
+    display:ready ? 'ELIGIBLE / HUMAN ONLY' : evidenceEligible ? 'OPERATIONAL HOLD' : 'ELIGIBILITY HOLD',
+    basis:evidenceEligible ? 'Genuine completed service + consent + human approval' : 'Not established',
+    clearance:operationalCleared ? 'Operations clear' : 'Operations hold',
+    blockers:Object.freeze(blockers.map(b => b.code)),
     reasons:Object.freeze(reasons),
     nonQualifying:Object.freeze(nonQualifying),
     nonQualifyingLabels:Object.freeze(nonQualifying.map(k => NON_QUALIFYING_LABELS[k])),
@@ -88,7 +108,6 @@ export function deriveServiceEligibility(raw) {
 export function deriveWorkbench(raw, asOf) {
   const x = validateFictionalLocation(raw);
   const report = compareAggregateObservations(x.previous, x.current, {asOf, maxAgeHours: 336});
-  const serviceEligibility = deriveServiceEligibility(x.service);
   const tasks = [];
   if (!x.approvals.service) tasks.push({id:'service', severity:'hold', title:'Accept service scope', detail:'Client Operations must approve scope before any real monitoring starts.'});
   if (!x.approvals.operator) tasks.push({id:'operator', severity:'hold', title:'Assign human operator', detail:'A named, authorized operator must own native queue checks.'});
@@ -100,7 +119,9 @@ export function deriveWorkbench(raw, asOf) {
   if (x.mgr.route === 'rating_conditioned_hold') tasks.push({id:'route', severity:'hold', title:'Reject sentiment-conditioned routing', detail:'A public Google option cannot depend on a favorable rating.'});
   if (x.mgr.route === 'not_connected') tasks.push({id:'route', severity:'verify', title:'Keep MGR disconnected', detail:'Native work can continue after authorization; no second provider is required.'});
   const allApproved = APPROVALS.every(k => x.approvals[k]);
-  const blocking = tasks.some(t => t.severity === 'hold');
+  const blockingTasks = tasks.filter(t => t.severity === 'hold');
+  const blocking = blockingTasks.length > 0;
+  const serviceEligibility = deriveServiceEligibility(x.service, {blockingTasks});
   return Object.freeze({
     id:x.id, name:x.name, kind:x.kind, owner:x.owner, status:blocking?'HOLD':allApproved?'REVIEW READY':'HUMAN REVIEW',
     summary: allApproved && !blocking ? 'Fictional workflow has approval inputs; production is still disabled.' : 'No service activation or customer delivery is authorized by this proof.',
