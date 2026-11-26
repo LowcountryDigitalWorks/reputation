@@ -241,11 +241,84 @@ test('service and MGR route matrix is fail-closed with native and verified contr
     assert.equal(e.customerDeliveryAuthorized,false,key+' must never authorize delivery');
   }
 });
+test('exported deriveServiceEligibility direct calls mirror the 2x4 workbench matrix with empty blockers',()=>{
+  const expected={
+    'native_only:unverified':false,
+    'native_only:rating_conditioned_hold':false,
+    'native_only:not_connected':true,
+    'native_only:neutral_verified':true,
+    'mgr_optional:unverified':false,
+    'mgr_optional:rating_conditioned_hold':false,
+    'mgr_optional:not_connected':false,
+    'mgr_optional:neutral_verified':true
+  };
+  for(const [key,clears] of Object.entries(expected)){
+    const [serviceRoute,mgrRoute]=key.split(':');
+    const raw={...readyFixture.service,route:serviceRoute};
+    const context={assessed:true,blockingTasks:[],mgrRoute};
+    const direct=deriveServiceEligibility(raw,context);
+    const viaModel=model({...readyFixture,service:raw,
+      mgr:{route:mgrRoute,event:'none',delivery:'not_requested'}}).serviceEligibility;
+    assert.equal(direct.assessed,true,key+' must be assessed');
+    assert.equal(direct.evidenceEligible,true,key+' must use all positive event facts');
+    assert.equal(direct.operationalCleared,clears,key+' clearance mismatch');
+    assert.equal(direct.ready,clears,key+' readiness mismatch');
+    assert.deepEqual(direct.blockers,viaModel.blockers,key+' direct/model blocker drift');
+    assert.equal(direct.ready,viaModel.ready,key+' direct/model readiness drift');
+    assert.equal(direct.state,clears?'ELIGIBLE_FOR_HUMAN_REVIEW':'OPERATIONAL_HOLD',key+' state mismatch');
+    if(mgrRoute==='unverified'||mgrRoute==='rating_conditioned_hold')
+      assert.ok(direct.blockers.includes('op_route'),key+' unsafe route hold missing');
+    if(mgrRoute==='not_connected'&&serviceRoute==='mgr_optional')
+      assert.ok(direct.blockers.includes('op_route_availability'),key+' availability hold missing');
+    if(mgrRoute==='not_connected'&&serviceRoute==='native_only')
+      assert.deepEqual(direct.blockers,[],key+' native disconnected must stay clear');
+    assert.equal(direct.customerDeliveryAuthorized,false,key+' must never authorize delivery');
+  }
+});
+test('direct-call unsafe route deduplicates a caller-supplied op_route blocker',()=>{
+  for(const [mgrRoute,title] of [['unverified','Verify all five rating routes'],['rating_conditioned_hold','Reject sentiment-conditioned routing']]){
+    const e=deriveServiceEligibility(readyFixture.service,
+      {assessed:true,mgrRoute,
+        blockingTasks:[{id:'route',severity:'hold',title,detail:'caller-provided route hold'}]});
+    assert.deepEqual(e.blockers,['op_route'],mgrRoute+' must not duplicate op_route');
+    assert.equal(e.reasons.filter(r=>r.code==='op_route').length,1,mgrRoute+' duplicate reason');
+    assert.equal(e.reasons.find(r=>r.code==='op_route').detail,'caller-provided route hold');
+    assert.equal(e.ready,false,mgrRoute+' must remain held');
+  }
+});
+test('direct calls never qualify from scan, intake, sentiment or click alone',()=>{
+  for(const signal of ['contactCardScan','serviceIntake','sentiment','click']){
+    const nonQualifying={...readyFixture.service.nonQualifying,[signal]:true};
+    const signalOnly={...readyFixture.service,completedService:false,consent:false,humanApproval:false,nonQualifying};
+    const e=deriveServiceEligibility(signalOnly,{assessed:true,blockingTasks:[],mgrRoute:'neutral_verified'});
+    assert.equal(e.evidenceEligible,false,signal+' cannot establish evidence eligibility');
+    assert.equal(e.ready,false,signal+' cannot qualify');
+    assert.ok(e.nonQualifying.includes(signal),signal+' must stay reported as non-qualifying');
+    assert.equal(e.customerDeliveryAuthorized,false,signal+' cannot authorize delivery');
+    const withEvidence=deriveServiceEligibility({...readyFixture.service,nonQualifying},
+      {assessed:true,blockingTasks:[],mgrRoute:'neutral_verified'});
+    assert.equal(withEvidence.ready,true,signal+' may coexist with genuine evidence');
+    assert.equal(withEvidence.customerDeliveryAuthorized,false);
+  }
+});
+test('direct-call eligibility stays independent of public reply approval',()=>{
+  const direct=deriveServiceEligibility(readyFixture.service,
+    {assessed:true,blockingTasks:[],mgrRoute:'neutral_verified'});
+  assert.equal(direct.ready,true);
+  assert.ok(!direct.blockers.some(b=>b==='op_reply'));
+  const x=model({...readyFixture,replyQueue:'approval_required',
+    approvals:{...readyFixture.approvals,replyApprover:false}});
+  assert.ok(x.tasks.some(t=>t.id==='reply'&&t.severity==='human'));
+  assert.equal(x.serviceEligibility.ready,true);
+  assert.equal(x.customerDeliveryAuthorized,false);
+});
 test('unassessed or malformed operations context fails closed',()=>{
   const bad=[undefined,null,{},{assessed:false,blockingTasks:[],mgrRoute:'neutral_verified'},
+    {assessed:false,blockingTasks:[],mgrRoute:'unverified'},
     {assessed:true,blockingTasks:'none',mgrRoute:'neutral_verified'},
     {assessed:true,blockingTasks:[{}],mgrRoute:'neutral_verified'},
     {assessed:true,blockingTasks:[],mgrRoute:'mgr_verified'},
+    {assessed:true,blockingTasks:[],mgrRoute:'rating_conditioned_hold',extra:true},
     {assessed:true,blockingTasks:[],mgrRoute:'neutral_verified',extra:true}];
   for(const context of bad){
     const e=deriveServiceEligibility(readyFixture.service,context);

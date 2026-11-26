@@ -66,6 +66,11 @@ function validateServiceReadiness(s) {
   return s;
 }
 const reason = (code, severity, title, detail) => Object.freeze({code, severity, title, detail});
+const ROUTE_POLICY_HOLDS = Object.freeze({
+  unverified: Object.freeze({id:'route', severity:'hold', title:'Verify all five rating routes', detail:'Do not treat unverified MGR public-review routing as ready. Inspect the exact authorized project; MGR visibility is not routing proof.'}),
+  rating_conditioned_hold: Object.freeze({id:'route', severity:'hold', title:'Reject sentiment-conditioned routing', detail:'A public Google option cannot depend on a favorable rating.'})
+});
+const routePolicyHold = mgrRoute => ROUTE_POLICY_HOLDS[mgrRoute] || null;
 
 /**
  * A service-only call cannot assess operational holds. Accept only a complete,
@@ -87,8 +92,9 @@ function assessedOperations(context) {
  * route-policy, coverage and approval holds) are reported separately; a
  * location-level hold always overrides otherwise satisfied event flags.
  * An optional MGR route also requires MGR to be connected. An unassessed or
- * malformed context never clears. Public reply approval stays an independent
- * human task and is not an operational hold.
+ * malformed context never clears. Unsafe MGR route policy is an independent
+ * hold even when a direct caller supplies no blocking tasks. Public reply
+ * approval stays an independent human task and is not an operational hold.
  */
 export function deriveServiceEligibility(raw, context = null) {
   const s = validateServiceReadiness(raw);
@@ -107,6 +113,10 @@ export function deriveServiceEligibility(raw, context = null) {
       'Operational holds and route availability were not supplied. This fictional case stays on hold until they are assessed.'));
   } else {
     for (const t of context.blockingTasks) blockers.push(reason('op_' + t.id, 'hold', t.title, t.detail));
+    const policyHold = routePolicyHold(context.mgrRoute);
+    if (policyHold && !blockers.some(b => b.code === 'op_' + policyHold.id)) {
+      blockers.push(reason('op_' + policyHold.id, policyHold.severity, policyHold.title, policyHold.detail));
+    }
     if (s.route === 'mgr_optional' && context.mgrRoute === 'not_connected' &&
         !blockers.some(b => b.code === 'op_route_availability')) {
       blockers.push(reason('op_route_availability','hold','MGR route not available',
@@ -143,8 +153,8 @@ export function deriveWorkbench(raw, asOf) {
   if (!x.approvals.replyApprover && x.replyQueue === 'approval_required') tasks.push({id:'reply', severity:'human', title:'Confirm reply approver', detail:'Any public owner response requires explicit human authorization. No review text is present.'});
   if (report.comparison === 'COUNT_DECREASED_RECONCILE') tasks.push({id:'decline', severity:'hold', title:'Reconcile count decrease', detail:'A net decrease requires a human source check before any business interpretation.'});
   if (report.coverage !== 'CURRENT_AS_OF') tasks.push({id:'coverage', severity:'hold', title:'Restore native observation coverage', detail:'Source is unavailable, stale, held or not authorized. Missing data must never display as zero.'});
-  if (x.mgr.route === 'unverified') tasks.push({id:'route', severity:'hold', title:'Verify all five rating routes', detail:'Do not treat unverified MGR public-review routing as ready. Inspect the exact authorized project; MGR visibility is not routing proof.'});
-  if (x.mgr.route === 'rating_conditioned_hold') tasks.push({id:'route', severity:'hold', title:'Reject sentiment-conditioned routing', detail:'A public Google option cannot depend on a favorable rating.'});
+  const policyHold = routePolicyHold(x.mgr.route);
+  if (policyHold) tasks.push(policyHold);
   if (x.mgr.route === 'not_connected' && x.service.route === 'mgr_optional')
     tasks.push({id:'route_availability', severity:'hold', title:'MGR route not available', detail:'This fictional case selects an optional MGR route, but MGR is not connected. Use a connected, verified MGR route or switch to native-only; no customer action is enabled.'});
   else if (x.mgr.route === 'not_connected')
