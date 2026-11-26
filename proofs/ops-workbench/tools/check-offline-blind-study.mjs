@@ -74,6 +74,10 @@ try {
     'Offline source did not derive a populated decision count');
   assert.match(stdout, /id="public-count">[0-9]+<\/strong>/,
     'Offline fixture did not render an actual synthetic public count');
+  assert.match(stdout, /id="handoff-state">HOLD<\/span>/,
+    'Offline Workbench did not derive the operator handoff summary');
+  assert.match(stdout, /not newly attributed reviews/,
+    'Offline handoff omitted the net-movement boundary');
   assert.match(stdout, /No provider, customer or account can be changed here/,
     'Fictional-only authority boundary missing');
   assert.match(stdout, /<output id="ldw-offline-style-probe">CSS_LAYOUT_APPLIED<\/output>/,

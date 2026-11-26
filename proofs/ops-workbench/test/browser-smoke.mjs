@@ -39,6 +39,20 @@ try {
     ['harbor-pine', 'cedar-quay', 'marshlight', 'bayline'].map(location);
   check([harbor,cedar,marsh,bayline].every(Boolean), 'Four fictional locations missing');
   check(harbor.getAttribute('aria-pressed') === 'true', 'Initial location selection incorrect');
+  const handoff = document.getElementById('handoff');
+  check(handoff?.tagName === 'DETAILS' && handoff.querySelector('summary'),
+    'Operator handoff must be a native disclosure');
+  check(getComputedStyle(document.querySelector('.handoff-body')).userSelect !== 'none',
+    'Handoff text must remain selectable');
+  check(text('handoff-state') === 'HOLD', 'Handoff state must mirror selected location');
+  check(text('handoff-count').includes('+2') && text('handoff-count').includes('not newly attributed reviews'),
+    'Handoff net-movement boundary missing');
+  check(text('handoff-mgr').includes('never promoted to a published Google review'),
+    'Handoff MGR click boundary missing');
+  check(text('handoff-readiness').includes('Service eligibility') &&
+    text('handoff-readiness').includes('Operational clearance: hold') &&
+    text('handoff-readiness').includes('No customer delivery'),
+    'Handoff eligibility/clearance/no-delivery boundary missing');
   const statusEl = document.getElementById('readiness-count');
   check(statusEl.getAttribute('aria-live') === 'polite' && statusEl.getAttribute('aria-atomic') === 'true',
     'Readiness status must be one polite atomic live region');
@@ -63,12 +77,19 @@ try {
   check(reasons().includes('MGR route not available'), 'Route-availability blocker missing from readiness reasons');
   check(text('readiness-basis').includes('Genuine completed service + consent + human approval') &&
     text('readiness-basis').includes('Operations hold'), 'Evidence eligibility not distinguished from operational hold');
+  check(text('handoff-reply').includes('Confirm reply approver') &&
+    text('handoff-reply').includes('independent of service eligibility'),
+    'Handoff public reply authority not independent');
   marsh.click(); filter('verify');
   check(text('task-count') === '1 of 5 items', 'Disconnected native-only Verify count wrong');
   check(titles().includes('Keep MGR disconnected'), 'Native-only state not distinguished');
   check(text('public-count') === 'Withheld', 'Stale aggregate exposed as a value');
   check(text('readiness-route') === 'Native-only', 'Native-only service route not distinguished from MGR');
   check(reasons().includes('Suppression active'), 'Suppression hold reason missing');
+  check(text('handoff-count').includes('Withheld means no permitted current value, not zero'),
+    'Handoff withheld count boundary missing');
+  check(text('handoff-signals').includes('none would qualify'),
+    'Handoff no-qualifying-events boundary missing');
   bayline.click();
   check(text('location-status') === 'REVIEW READY', 'Fictional approved case not review-ready');
   check(text('task-count') === '0 items', 'Approved fictional case has unexpected tasks');
@@ -77,6 +98,9 @@ try {
     'Qualifying basis not shown');
   check(text('readiness-signals').includes('Click') && text('readiness-signals').includes('never qualify'),
     'Click never-qualify guard missing even in qualified case');
+  check(text('handoff-next').includes('No open fictional decision') &&
+    text('handoff-reply').includes('no public reply is queued'),
+    'Handoff no-open-decision / no-reply-authority boundary lost');
   check(text('boundary-summary').includes('No provider, customer or account can be changed here'),
     'Fictional-only no-action boundary lost');
   check(document.querySelector('.summary-card.accent .summary-value').textContent.trim() === '0',
@@ -85,7 +109,7 @@ try {
   check(document.documentElement.dataset.theme === 'light', 'Theme switch failed');
   check(document.getElementById('theme-toggle').getAttribute('aria-pressed') === 'true',
     'Theme toggle pressed state failed');
-  finish('PASS', 'Real Chromium DOM: route HOLD, MGR route-availability hold, native-only Verify, service eligibility/never-qualify, focus, stale count, fictional no-actions, theme');
+  finish('PASS', 'Real Chromium DOM: route HOLD, MGR route-availability hold, native-only Verify, service eligibility/never-qualify, selectable operator handoff with withheld/net-movement/reply boundaries, focus, theme');
 } catch (error) {
   finish('FAIL', String(error?.message || error));
 }
