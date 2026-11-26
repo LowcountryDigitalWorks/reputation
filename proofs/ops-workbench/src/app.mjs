@@ -1,5 +1,5 @@
 import {FICTIONAL_LOCATIONS, FIXTURE_CLOCK} from './fixtures.mjs';
-import {derivePortfolio} from './workbench.mjs';
+import {derivePortfolio, deriveOperatorHandoff} from './workbench.mjs';
 
 const portfolio = derivePortfolio(FICTIONAL_LOCATIONS, FIXTURE_CLOCK);
 let selected = portfolio.rows[0].id;
@@ -68,6 +68,18 @@ function renderEvidence(row){
  mount.append(evidenceRow('✉','Delivery lifecycle','NOT EVIDENCE',row.messageEvidence,'blue'));
  mount.append(evidenceRow('☑','Public reply authority',row.replyQueue==='approval_required'?'HUMAN HOLD':row.replyQueue==='none'?'NO REPLY QUEUED':'UNVERIFIED','No reply text, recipient data, or publishing capability in this prototype.','grey'));
 }
+function renderHandoff(row){
+  const h=deriveOperatorHandoff(row);
+  set('handoff-state',h.state);
+  set('handoff-location',h.location);
+  set('handoff-source',h.source+' · '+fmtUtc(h.observedAt)+' · '+h.coverage);
+  set('handoff-count',h.publicCount+' — '+h.countNote);
+  set('handoff-signals',h.signals);
+  set('handoff-mgr',h.mgrNote);
+  set('handoff-readiness',h.readiness+' '+h.delivery);
+  set('handoff-next',h.nextTask+' — '+h.nextReason);
+  set('handoff-reply',h.replyAuthority);
+}
 function render(){
  const row=portfolio.rows.find(x=>x.id===selected);
  set('location-title',row.name);set('location-kind',row.kind+' · '+row.owner);
@@ -78,7 +90,7 @@ function render(){
  set('rating-sub',row.report.coverage==='CURRENT_AS_OF'?'Fictional displayed average':'Coverage hold: '+row.report.coverage);
  set('mgr-status',row.mgrRoute==='rating_conditioned_hold'?'Route policy hold':row.mgrRoute==='unverified'?'Routing unverified':row.mgrRoute==='not_connected'?'Not connected':'Synthetic route pass');
  set('boundary-summary',row.summary+' Everything shown is fictional. No provider, customer or account can be changed here.');
- renderTasks(row);renderReadiness(row);renderEvidence(row);renderLocations();
+ renderTasks(row);renderReadiness(row);renderEvidence(row);renderHandoff(row);renderLocations();
 }
 function syncFilter(){for(const b of document.querySelectorAll('[data-filter]')){let active=b.dataset.filter===filter;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',String(active));}}
 set('fixture-clock','FIXTURE • '+fmtUtc(FIXTURE_CLOCK));set('workspaces-count',portfolio.rows.length);set('hold-count',portfolio.holds);set('decision-count',portfolio.pending);

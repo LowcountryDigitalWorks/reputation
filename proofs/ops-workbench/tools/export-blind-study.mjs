@@ -54,7 +54,7 @@ export async function buildBlindStudy(readSource = defaultReadSource) {
   let app = once(files.app,
     "import {FICTIONAL_LOCATIONS, FIXTURE_CLOCK} from './fixtures.mjs';",
     '', 'app fixture import');
-  app = once(app, "import {derivePortfolio} from './workbench.mjs';",
+  app = once(app, "import {derivePortfolio, deriveOperatorHandoff} from './workbench.mjs';",
     '', 'app model import');
   const stripExports = s => s.replace(/^export (const|function) /gm, '$1 ');
   // Keep each original module's lexical namespace: both aggregate and Workbench
@@ -65,7 +65,7 @@ export async function buildBlindStudy(readSource = defaultReadSource) {
   const js = [
     '/* G3a fictional-only offline participant copy; generated from accepted repository sources. */',
     wrap(files.aggregate, ['compareAggregateObservations'], 'aggregate'),
-    wrap(model, ['derivePortfolio'], 'model'),
+    wrap(model, ['derivePortfolio', 'deriveOperatorHandoff'], 'model'),
     wrap(files.fixtures, ['FICTIONAL_LOCATIONS', 'FIXTURE_CLOCK'], 'fixtures'),
     noModules(stripExports(app), 'app')
   ].join('\n\n');

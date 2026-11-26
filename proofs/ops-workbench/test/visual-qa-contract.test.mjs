@@ -28,3 +28,12 @@ test('action labels remain usable at small widths and Verify is independently fi
   assert.doesNotMatch(css, /\.source-value\{font-size:8px/);
   assert.match(html, /<button class="filter-button" data-filter="verify" aria-pressed="false">Verify<\/button>/);
 });
+
+test('operator handoff is a native disclosure with selectable wrapped text', () => {
+  assert.match(html, /<details class="panel handoff-panel" id="handoff">/);
+  assert.match(html, /<summary class="handoff-summary">/);
+  assert.match(html, /id="handoff-next"/);
+  assert.match(css, /\.handoff-body\{[^}]*user-select:text/);
+  assert.match(css, /\.handoff-grid dd\{[^}]*overflow-wrap:anywhere/);
+  assert.match(css, /\.handoff-grid\{[^}]*repeat\(auto-fit,minmax\(230px,1fr\)\)/);
+});

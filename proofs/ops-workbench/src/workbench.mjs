@@ -175,6 +175,50 @@ export function deriveWorkbench(raw, asOf) {
   });
 }
 
+/** Compact operator-facing handoff text derived only from an already validated row. */
+export function deriveOperatorHandoff(row) {
+  guard(plain(row) && typeof row.id === 'string' && plain(row.report) &&
+    plain(row.serviceEligibility) && Array.isArray(row.tasks) &&
+    row.customerDeliveryAuthorized === false, 'derived workbench row required');
+  const r = row.report;
+  const s = row.serviceEligibility;
+  const next = row.tasks.find(t => t.severity === 'hold') ||
+    row.tasks.find(t => t.severity === 'human') ||
+    row.tasks.find(t => t.severity === 'verify') || null;
+  const withheld = r.reviewCount.current === null;
+  const countNote = withheld
+    ? 'Withheld means no permitted current value, not zero; no net movement is claimed.'
+    : r.reviewCount.netDelta === null
+      ? 'Baseline only; no net movement or newly published review is claimed.'
+      : 'Net count movement ' + (r.reviewCount.netDelta >= 0 ? '+' : '') + r.reviewCount.netDelta +
+        ' is a count change, not newly attributed reviews.';
+  const replyTask = row.tasks.find(t => t.id === 'reply');
+  const replyAuthority = replyTask
+    ? 'Public reply authority: ' + replyTask.title + ' — independent of service eligibility. ' + replyTask.detail
+    : 'Public reply authority: no public reply is queued in this fictional case; the handoff grants none.';
+  return Object.freeze({
+    state: row.status,
+    location: row.name + ' · ' + row.kind + ' · ' + row.owner,
+    source: r.source,
+    observedAt: r.currentObservedAt,
+    coverage: r.coverage,
+    publicCount: withheld ? 'Withheld' : String(r.reviewCount.current),
+    countNote,
+    signals: s.nonQualifyingLabels.length
+      ? s.nonQualifyingLabels.join(' · ') + ' — observed only; never qualify'
+      : 'No scan, intake, sentiment or click recorded; none would qualify',
+    mgrNote: row.mgrEvidence + ' A MGR click, first-party update or message is never promoted to a published Google review by this handoff.',
+    readiness: 'Service eligibility: ' + (s.evidenceEligible ? 'evidence established' : 'evidence not established') +
+      ' (' + s.state + ' / ' + s.display + '). Operational clearance: ' +
+      (s.operationalCleared ? 'clear' : 'hold') + ' (' + s.clearance + ').',
+    nextTask: next ? next.title : 'No open fictional decision',
+    nextReason: next ? next.detail : 'No operational hold, human task or verification is open in this fictional case.',
+    replyAuthority,
+    delivery: 'No customer delivery, public reply, external send or live action is authorized by this handoff.',
+    deliveryAuthorized: false
+  });
+}
+
 export function derivePortfolio(locations, asOf) {
   guard(Array.isArray(locations) && locations.length > 0, 'fixture list required');
   const ids = new Set();

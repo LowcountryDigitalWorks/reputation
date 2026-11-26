@@ -34,7 +34,10 @@ test('blind participant export contains only original fictional Workbench and bl
   assert.doesNotMatch(js, /^\s*(import|export)\s/m);
   assert.match(js, /compareAggregateObservations/);
   assert.match(js, /derivePortfolio/);
+  assert.match(js, /deriveOperatorHandoff/);
   assert.match(js, /renderLocations/);
+  assert.match(html, /<details class="panel handoff-panel" id="handoff"/);
+  assert.match(html, /id="handoff-next"/);
 });
 test('same accepted source produces identical offline export bytes', async () => {
   const a = await buildBlindStudy();

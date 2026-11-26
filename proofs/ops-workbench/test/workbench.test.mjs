@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {FICTIONAL_LOCATIONS, FIXTURE_CLOCK} from '../src/fixtures.mjs';
-import {deriveWorkbench, derivePortfolio, validateFictionalLocation, deriveServiceEligibility} from '../src/workbench.mjs';
+import {deriveWorkbench, derivePortfolio, validateFictionalLocation, deriveServiceEligibility, deriveOperatorHandoff} from '../src/workbench.mjs';
 const [harbor,cedar,marsh] = FICTIONAL_LOCATIONS;
 const model = x=>deriveWorkbench(x,FIXTURE_CLOCK);
 
@@ -357,4 +357,65 @@ test('rating click requires a non-qualifying click flag; other clicks may be obs
     /rating click requires non-qualifying click flag/);
   assert.doesNotThrow(()=>model(readyFixture));
   assert.equal(model(readyFixture).serviceEligibility.nonQualifying.includes('click'),true);
+});
+
+// ---- G3a+ local fictional operator decision handoff summary ----
+test('operator handoff is derived only from a validated read-only row',()=>{
+  const row=model(harbor);
+  const h=deriveOperatorHandoff(row);
+  assert.equal(h.state,row.status);
+  assert.equal(h.location,row.name+' · '+row.kind+' · '+row.owner);
+  assert.equal(h.source,row.report.source);
+  assert.equal(h.observedAt,row.report.currentObservedAt);
+  assert.equal(h.deliveryAuthorized,false);
+  assert.match(h.delivery,/No customer delivery, public reply, external send or live action/);
+  assert.throws(()=>deriveOperatorHandoff({...row,customerDeliveryAuthorized:true}),/derived workbench row required/);
+  assert.throws(()=>deriveOperatorHandoff({id:'x'}),/derived workbench row required/);
+  assert.throws(()=>deriveOperatorHandoff(null),/derived workbench row required/);
+});
+test('handoff preserves source, as-of, coverage, withheld counts and net-movement boundary',()=>{
+  const h=deriveOperatorHandoff(model(harbor));
+  assert.equal(h.coverage,'CURRENT_AS_OF');
+  assert.equal(h.publicCount,'25');
+  assert.match(h.countNote,/Net count movement \+2/);
+  assert.match(h.countNote,/not newly attributed reviews/);
+  const stale=deriveOperatorHandoff(model(marsh));
+  assert.equal(stale.publicCount,'Withheld');
+  assert.equal(stale.observedAt,null);
+  assert.equal(stale.coverage,'STALE');
+  assert.match(stale.countNote,/Withheld means no permitted current value, not zero/);
+  assert.doesNotMatch(stale.countNote,/0 reviews/);
+});
+test('handoff never promotes MGR activity or non-qualifying signals',()=>{
+  const h=deriveOperatorHandoff(model(harbor));
+  assert.match(h.mgrNote,/MGR rating-link click/);
+  assert.match(h.mgrNote,/never promoted to a published Google review/);
+  assert.match(h.signals,/Contact-card scan/);
+  assert.match(h.signals,/never qualify/);
+  assert.match(deriveOperatorHandoff(model(marsh)).signals,/No scan, intake, sentiment or click recorded; none would qualify/);
+});
+test('handoff separates service eligibility from operational clearance with a concrete next task',()=>{
+  const h=deriveOperatorHandoff(model(cedar));
+  assert.match(h.readiness,/Service eligibility: evidence established/);
+  assert.match(h.readiness,/OPERATIONAL HOLD/);
+  assert.match(h.readiness,/Operational clearance: hold/);
+  assert.equal(h.nextTask,'MGR route not available');
+  assert.match(h.nextReason,/no customer action is enabled/);
+  const unsafe=deriveOperatorHandoff(model({...readyFixture,
+    mgr:{route:'rating_conditioned_hold',event:'none',delivery:'not_requested'}}));
+  assert.equal(unsafe.nextTask,'Reject sentiment-conditioned routing');
+  assert.match(unsafe.readiness,/Operational clearance: hold/);
+  assert.equal(unsafe.deliveryAuthorized,false);
+});
+test('handoff keeps public reply authority independent and grants no delivery',()=>{
+  const cedarHandoff=deriveOperatorHandoff(model(cedar));
+  assert.match(cedarHandoff.replyAuthority,/Confirm reply approver/);
+  assert.match(cedarHandoff.replyAuthority,/independent of service eligibility/);
+  const bayline=deriveOperatorHandoff(model(FICTIONAL_LOCATIONS[3]));
+  assert.match(bayline.replyAuthority,/no public reply is queued/);
+  assert.equal(bayline.nextTask,'No open fictional decision');
+  for(const h of [cedarHandoff,bayline]){
+    assert.equal(h.deliveryAuthorized,false);
+    assert.match(h.delivery,/No customer delivery/);
+  }
 });
